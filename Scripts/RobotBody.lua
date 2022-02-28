@@ -29,54 +29,19 @@
     - David
 --]]
 
-function init_body()
-    --[[
-        This function is used in place of the syscall_init() funciton of 
-        coppeliasim.
 
-        place all the code needed for the function in this and the child
-        script calls the function init_body().
-    --]]
-    print("hello world")
-    leftJoint=sim.getObjectHandle("left_wheel_motor") 
-    nominalLinearVelocity=1
+function init_body()
+   
 end
 
 function actuation_body()
-    --[[
-        This function is used in place of the syscall_actuation() funciton of 
-        coppeliasim.
-
-        place all the code needed for the function in this and the child
-        script calls the function actuation_body().
-    --]]
-    -- put your actuation code here
-    sim.setJointTargetVelocity(leftJoint,1)
+    
 end
 
 function sensing_body()
-    --[[
-        This function is used in place of the syscall_sensing() funciton of 
-        coppeliasim.
-
-        place all the code needed for the function in this and the child
-        script calls the function sensing_body().
-    --]]
-
-    -- put your actuation code here
     -- put your sensing code here
 end
 
 function cleanup_body()
-    --[[
-        This function is used in place of the syscall_cleanup() funciton of 
-        coppeliasim.
-
-        place all the code needed for the function in this and the child
-        script calls the function cleanup_body().
-    --]]
-    -- put your actuation code here
-
     -- do some clean-up here
 end
-
