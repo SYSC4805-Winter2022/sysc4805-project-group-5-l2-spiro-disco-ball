@@ -26,17 +26,17 @@ function sysCall_actuation()
 
 end
 
-local eye_angle = 0
+local eye_angle = -90
 
 function control_eyes()
-    if eye_angle >= 90 then
-        eye_angle = 0
+    if eye_angle < 270 then
+        eye_angle = -90
     else
         eye_angle = eye_angle + 1
     end
 
-    sim.setJointPosition(eye_left, eye_angle)
-    sim.setJointPosition(eye_right, eye_angle)
+    sim.setJointTargetPosition(eye_left, -1 *eye_angle * (3.14159265/180))
+    sim.setJointTargetPosition(eye_right, -1 * eye_angle * (3.141592/180))
 end
 
 -- All Sensing Related Code
