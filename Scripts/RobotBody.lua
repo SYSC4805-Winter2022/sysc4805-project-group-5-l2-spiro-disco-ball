@@ -119,15 +119,21 @@ end
 
 function sensing_body()
     -- put your sensing code here
-    L_result, L_distance = sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)
-    R_result, R_distance = sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)
+    L_result, L_distance,  L_point, L_handle = sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)
+    R_result, R_distance,  R_point, R_handle = sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)
 
     if(L_distance ~= nil) then
         print("LEFT:" .. L_distance)
+        sim.setJointTargetVelocity(wheel_right, 0)
+    else
+        sim.setJointTargetVelocity(wheel_right, nominal_velocity)
     end
 
     if(R_distance ~= nil) then
         print("RIGHT" .. R_distance)
+        sim.setJointTargetVelocity(wheel_left, 0)
+    else
+        sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     end
     
 end
