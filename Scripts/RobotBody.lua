@@ -48,7 +48,7 @@ function init_body()
     eye_right        = sim.getObjectHandle("right_eye") 
 
     -- Set default wheel velocity
-    nominal_velocity = 5
+    nominal_velocity = 2
 
     sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     sim.setJointTargetVelocity(wheel_right, nominal_velocity)
@@ -110,7 +110,7 @@ function control_eyes()
     if eye_angle < - 75 then
         eye_angle = 90
     else
-        eye_angle = eye_angle - 1
+        eye_angle = eye_angle - 2
     end
 
     sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
@@ -119,8 +119,17 @@ end
 
 function sensing_body()
     -- put your sensing code here
-    result, distance, detectedPoint, objectHandle, normVector = sim.handleProximitySensor(sim.handle_all)
-    print(distance)
+    L_result, L_distance = sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)
+    R_result, R_distance = sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)
+
+    if(L_distance ~= nil) then
+        print("LEFT:" .. L_distance)
+    end
+
+    if(R_distance ~= nil) then
+        print("RIGHT" .. R_distance)
+    end
+    
 end
 
 function cleanup_body()
