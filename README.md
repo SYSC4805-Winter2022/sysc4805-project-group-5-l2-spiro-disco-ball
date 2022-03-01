@@ -12,11 +12,29 @@
 2. Git
 
 ### **Contributors**
-
-
 Student | Student Number
 --- | ---
 David Casciano | 101069255
 Aedyn Ladd | 101068855
 Daniel Tura | 100995028
 Tadhg McDonald-Jensen | 101047069
+
+### **Tasks Completed**
+Task | Contributor | Advisors
+---|---|---
+Create Github repository and associated projects | David Casciano | Aedyn Ladd
+Create gantt chart, reponsibility matrix, and state diagram | David Casciano | N/A
+Create infrastructure for version controlling | David Casciano | Daniel Tura and Aedyn Ladd
+Created robot model | Aedyn Ladd | N/A
+Added sensors and motors to model | Aedynn Ladd | N/A
+Researched Sensing | Daniel Tura | N/A
+Implemented Sensing | Daniel Tura | N/A
+Researched Motors | Tadhg McDonald-Jensen | N/A
+
+### **Reporting**
+To access reports such as:
+- Project Proposal
+- Progress Report
+- Final Report (In Progress)
+
+Please refer to the _Reports_ Folder.
