@@ -29,8 +29,9 @@
     - David
 --]]
 
-
 function init_body()
+    eye_angle = 90
+
     --[[    
         Initialization of Motor Joints
     --]]
@@ -47,7 +48,7 @@ function init_body()
     eye_right        = sim.getObjectHandle("right_eye") 
 
     -- Set default wheel velocity
-    nominal_velocity = 1
+    nominal_velocity = 5
 
     sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     sim.setJointTargetVelocity(wheel_right, nominal_velocity)
@@ -70,24 +71,41 @@ function init_body()
     
     
     --[[
-        Initialize our 'lilypad' - a home beacon used to orient the robot around its body
+        Initialize our 'lilypad' - a home beacon used to orient the robot around its body, and the map
     --]]
 
     main_body = sim.getObjectHandle("plow_motor") -- Note: We don't use the body, I believe that the body contains the static lilypad also which messes with it
     lilypad = sim.getObjectHandle("_lilypad")
 
+    map = create_map(12, 12)
  
 end
 
-
-function actuation_body()
-    location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad 
-    print("x: ".. location[1] .. " , y: " .. location[2])
-
-    control_eyes()
+function create_map(N, M)
+    --[[
+        Creates an NxM array to be used by the robot to identify its surroundings
+        N and M are both in units of meters
+    --]]
+    local grid = {}
+    for i = 1, N do
+        grid[i] = {}
+        for j = 1, M do
+            grid[i][j] = 0 -- Fill the values here - all are intialized to 0 which indicates empty
+        end
+    end
+    return grid
 end
 
-local eye_angle = 90
+
+
+function actuation_body()
+    location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
+    location[1] = location[1] + 6 
+    --print("x: ".. location[1] .. " , y: " .. location[2])
+    control_eyes()
+
+end
+
 function control_eyes()
     if eye_angle < - 75 then
         eye_angle = 90
@@ -99,9 +117,10 @@ function control_eyes()
     sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
 end
 
-
 function sensing_body()
     -- put your sensing code here
+    result, distance, detectedPoint, objectHandle, normVector = sim.handleProximitySensor(sim.handle_all)
+    print(distance)
 end
 
 function cleanup_body()
