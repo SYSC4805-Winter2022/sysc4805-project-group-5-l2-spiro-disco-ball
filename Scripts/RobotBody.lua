@@ -124,14 +124,18 @@ function sensing_body()
 
     if(L_distance ~= nil) then
         print("LEFT:" .. L_distance)
-        sim.setJointTargetVelocity(wheel_right, 0)
+        if(L_distance < 1) then
+            sim.setJointTargetVelocity(wheel_right, 0)
+        end
     else
         sim.setJointTargetVelocity(wheel_right, nominal_velocity)
     end
 
     if(R_distance ~= nil) then
         print("RIGHT" .. R_distance)
-        sim.setJointTargetVelocity(wheel_left, 0)
+        if(R_distance < 1) then
+            sim.setJointTargetVelocity(wheel_left, 0)
+        end 
     else
         sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     end
