@@ -1,4 +1,3 @@
-local MotorControl = require("Scripts/MotorControl")
 --[[
     This is the external script that will control the robot model.
     There are four function which will act as the body for the four 
@@ -28,6 +27,7 @@ local MotorControl = require("Scripts/MotorControl")
     Happy Hacking!
     - David
 --]]
+local MotorControl = require("Scripts/MotorControl")
 
 MAP_DIMENSIONS = {12,12} -- 12x12 M map
 PRECISION = 10 -- decimeter precision
@@ -111,7 +111,7 @@ end
 function actuation_body()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
-    
+
     if sim.getSimulationTime() - startTime >= TIMESTEP then
         startTime = sim.getSimulationTime()
         if movementState == "START" then
@@ -119,36 +119,30 @@ function actuation_body()
             motor:rotate(-math.pi/2/TIMESTEP, 0)
         elseif movementState == "forwardL" then
             movementState = "left"
-            motor:rotate(-math.pi/TIMESTEP, -0.4)
+            motor:rotate(-math.pi/TIMESTEP, -0.3)
         elseif movementState == "left" then
             movementState = "forwardR"
-            motor:setLinearVelocity(2)
+            motor:move(0.05)
         elseif movementState == "forwardR" then
             movementState = "right"
-            motor:rotate(math.pi/TIMESTEP, 0.4)
+            motor:rotate(math.pi/TIMESTEP, 0.3)
         elseif movementState == "right" then
             movementState = "forwardL"
-            motor:setLinearVelocity(2)
+            motor:move(0.05)
         end
     end
-    
 end
-
 
 function control_eyes()
-    --[[
-        This function controls the rotation of the eyes of our robot - they're used to take slices of the enviroment
-    --]]
-    if EYE_ANGLE < -90 then
-        EYE_ANGLE = 90
+    if eye_angle < - 75 then
+        eye_angle = 90
     else
-        EYE_ANGLE = EYE_ANGLE - 3
+        eye_angle = eye_angle - 2
     end
 
-    sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (math.pi/180))
-    sim.setJointTargetPosition(eye_right, EYE_ANGLE * (math.pi/180))
+    sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
+    sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
 end
-
 
 --[[
     SENSING BODY FUNCTIONS
@@ -262,7 +256,7 @@ end
 
 function saveMap()
     MapString = ""
-    
+
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
         for j = 1, MAP_DIMENSIONS[2]*PRECISION do
             MapString = MapString.. " " .. MAP[j][i]
