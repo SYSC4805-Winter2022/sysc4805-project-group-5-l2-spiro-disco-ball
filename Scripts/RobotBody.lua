@@ -1,4 +1,3 @@
-local MotorControl = require("Scripts/MotorControl")
 --[[
     This is the external script that will control the robot model.
     There are four function which will act as the body for the four 
@@ -28,6 +27,7 @@ local MotorControl = require("Scripts/MotorControl")
     Happy Hacking!
     - David
 --]]
+local MotorControl = require("Scripts/MotorControl")
 
 function init_body()
     eye_angle = 90
@@ -118,6 +118,7 @@ function control_eyes()
     sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
     sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
 end
+-- temporary hack to allow simple state machine to go back and forth
 TIMESTEP = 4
 function sensing_body()
     -- put your sensing code here
@@ -128,16 +129,16 @@ function sensing_body()
             motor:rotate(-math.pi/2/TIMESTEP, 0)
         elseif movementState == "forwardL" then
             movementState = "left"
-            motor:rotate(-math.pi/TIMESTEP, -0.4)
+            motor:rotate(-math.pi/TIMESTEP, -0.3)
         elseif movementState == "left" then
             movementState = "forwardR"
-            motor:setLinearVelocity(2)
+            motor:move(0.05)
         elseif movementState == "forwardR" then
             movementState = "right"
-            motor:rotate(math.pi/TIMESTEP, 0.4)
+            motor:rotate(math.pi/TIMESTEP, 0.3)
         elseif movementState == "right" then
             movementState = "forwardL"
-            motor:setLinearVelocity(2)
+            motor:move(0.05)
         end
     end
     --[[
