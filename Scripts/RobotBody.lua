@@ -134,14 +134,14 @@ function actuation_body()
 end
 
 function control_eyes()
-    if eye_angle < - 75 then
-        eye_angle = 90
+    if EYE_ANGLE < - 75 then
+        EYE_ANGLE = 90
     else
-        eye_angle = eye_angle - 2
+        EYE_ANGLE = EYE_ANGLE - 2
     end
 
-    sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
-    sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
+    sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (3.14159265/180))
+    sim.setJointTargetPosition(eye_right, EYE_ANGLE * (3.141592/180))
 end
 
 --[[
