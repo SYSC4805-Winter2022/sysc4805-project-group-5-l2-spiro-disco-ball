@@ -118,6 +118,9 @@ function control_eyes()
     sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
     sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
 end
+
+
+
 TIMESTEP = 4
 function sensing_body()
     -- put your sensing code here
