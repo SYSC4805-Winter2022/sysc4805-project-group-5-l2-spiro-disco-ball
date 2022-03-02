@@ -1,5 +1,5 @@
-
---[[ 
+local MotorControl = require("Scripts/MotorControl")
+--[[
     This is the external script that will control the robot model.
     There are four function which will act as the body for the four 
     functions in the child script of the robot.
@@ -37,7 +37,9 @@ function init_body()
     --]]
     wheel_left       = sim.getObjectHandle("left_wheel") 
     wheel_right      = sim.getObjectHandle("right_wheel")
-
+    motor = MotorControl:new()
+    movementState = "START"
+    startTime = sim.getSimulationTime()
     -- Initialize the central plow vertical motor and both wings
     plowMotor_center = sim.getObjectHandle("plow_motor") 
     plowMotor_left   = sim.getObjectHandle("left_wing_joint") 
@@ -116,9 +118,29 @@ function control_eyes()
     sim.setJointTargetPosition(eye_left, -1 * eye_angle * (3.14159265/180))
     sim.setJointTargetPosition(eye_right, eye_angle * (3.141592/180))
 end
-
+TIMESTEP = 4
 function sensing_body()
     -- put your sensing code here
+    if sim.getSimulationTime() - startTime >= TIMESTEP then
+        startTime = sim.getSimulationTime()
+        if movementState == "START" then
+            movementState = "left"
+            motor:rotate(-math.pi/2/TIMESTEP, 0)
+        elseif movementState == "forwardL" then
+            movementState = "left"
+            motor:rotate(-math.pi/TIMESTEP, -0.4)
+        elseif movementState == "left" then
+            movementState = "forwardR"
+            motor:setLinearVelocity(2)
+        elseif movementState == "forwardR" then
+            movementState = "right"
+            motor:rotate(math.pi/TIMESTEP, 0.4)
+        elseif movementState == "right" then
+            movementState = "forwardL"
+            motor:setLinearVelocity(2)
+        end
+    end
+    --[[
     L_result, L_distance,  L_point, L_handle = sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)
     R_result, R_distance,  R_point, R_handle = sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)
 
@@ -139,6 +161,8 @@ function sensing_body()
     else
         sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     end
+    --]]
+
     
 end
 
