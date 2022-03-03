@@ -72,11 +72,13 @@ function init_body()
     vision_sensor[2] = sim.getObjectHandle("center_detector")
     vision_sensor[3] = sim.getObjectHandle("right_detector")
 
-    proximity_sensor = {-1, -1, -1}
+
+
+    proximity_sensor = {-1, -1}
     -- Initialize the proximity sensors for detection of obstacles
     proximity_sensor[1] = sim.getObjectHandle("left_eye_sensor")
     proximity_sensor[2] = sim.getObjectHandle("right_eye_sensor")
-    proximity_sensor[3] = sim.getObjectHandle("orientation_sensor")
+
     --[[
         Initialize our 'lilypad' - a home beacon used to orient the robot around its body, and the map
     --]]
@@ -137,8 +139,8 @@ function actuation_body()
 end
 
 function control_eyes()
-    if EYE_ANGLE < - 75 then
-        EYE_ANGLE = 90
+    if EYE_ANGLE < -75 then
+        EYE_ANGLE = 100
     else
         EYE_ANGLE = EYE_ANGLE - 2
     end
@@ -163,12 +165,9 @@ function record_environment(left_sensor, right_sensor)
 
     location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
 
-    location[1] = location[1] + 6 -- We adjust our locations x by 6 as the x range is from -6 to +6 
-    
-    location[1] = math.floor((location[1] * PRECISION) + 0.5) -- [x]
-    location[2] = math.floor((location[2] * PRECISION) + 0.5) -- [y]
+    location = {math.floor(((location[1] + 6)*PRECISION) + 0.5),  math.floor((location[2] * PRECISION) + 0.5)}
 
-    if(location[1] == 0 or location[2] == 0) then
+    if(location[1] <= 0 or location[2] <= 0) then
         return nil
     else
         MAP[location[2]][location[1]] = "@"
@@ -180,11 +179,11 @@ function record_environment(left_sensor, right_sensor)
     -- We did sense something .. yay! Now we record it
     -- start by recording the pixels that are identified as being taken by what we detected
     if(left_sensor[1] == 1) then
-        add_to_map(location, left_sensor[2]*PRECISION, EYE_ANGLE, -1)
+        add_to_map(location, left_sensor[2]*PRECISION, 1)
     end
 
     if(right_sensor[1] == 1) then
-        add_to_map(location, right_sensor[2]*PRECISION, EYE_ANGLE, 1)
+        add_to_map(location, right_sensor[2]*PRECISION, 2)
     end
 
 end
@@ -192,63 +191,23 @@ end
 
 
 
-function add_to_map(current_position, distance, angle, side_flag)
+function add_to_map(current_position, distance, side)
     --[[
         Uses the current position and distance along with the angle to determine coordinates on the map occupied
         left or right is an integer of -1 or 1 used to determine if we are adding or subtracting distances
         math.floor(x + 0.5) is used to round an integered to the nearest whole number
     ]]
 
-    orientation = calculate_orientation(side_flag)
+    eye_orientation = sim.getObjectOrientation(proximity_sensor[side], lilypad)
 
-    calc_angle = (angle - orientation) * (math.pi/180)
+    if (eye_orientation[1] > 0) then sign_convention = -1 else sign_convention = 1 end
 
-    x_disp = side_flag * math.cos(calc_angle) * distance
-    y_disp = math.sin(calc_angle) * distance
+    map_element = {math.sin(eye_orientation[2]) * distance, sign_convention*(math.cos(eye_orientation[2]) * distance)}
 
-    --[[
-    line_of_sight = function(x_0)
-        y_0 = math.floor(((y_disp/x_disp) * x_0) + 0.5)
-        if(y_disp == 0) then
-            -- our function is not y=mx but rather x=0 as we are simply travelling the x-axis
-            return 0
-        else
-            if(y_0 >= MAP_DIMENSIONS[2]*PRECISION) then -- We shouldn't make note of anything more than our max possible distance 
-                return y_disp 
-            else
-                return math.floor(((y_disp/x_disp) * x_0) + 0.5)
-            end
-        end   
-    end 
-
-    increment = (x_disp > 0) and 1 or -1
-    last_y = current_position[2] -- make note of our starting y position as the last y series we have covered
-    -- This for loop calculates a line of sight from our current location to the obstacle - we know all these squares should be empty
-    for x_0 = current_position[1], x_disp, increment
-    do 
-        x_val = math.floor((current_position[1] + x_0))
-        y_val = math.floor((current_position[2] + line_of_sight(x_0)))
-        if(y_val == current_position[2]) then 
-            MAP[y_val][x_val] = "."
-        else 
-            -- This increments our x position - but we also want to keep track of what y positions we have covered in our line!
-            for y_inc = last_y, y_val, increment
-            do
-                -- increment up to our current y_val from our last y val
-                -- Store this value in an array element as being empty - this is the path that is clear leading up to the obstacle
-                if(x_val >= 1 and y_val >=1) then
-                    MAP[y_val][x_val] = "."
-                else
-                    -- Do nothing
-                end
-            end
-        end
-    end
-    --]]
     -- This is the location we detected based on our current position - this is fill so we turn its element into a 1
     -- if the object is static this array element should always remain 1, if it is dynamic then the array element will change over time
-    x_val = math.floor((current_position[1] + x_disp) + 0.5)
-    y_val = math.floor((current_position[2] + y_disp) + 0.5)
+    x_val = math.floor((current_position[1] + map_element[1]) + 0.5)
+    y_val = math.floor((current_position[2] + map_element[2]) + 0.5)
 
     if (x_val >=1) and (y_val >=1) then
         MAP[y_val][x_val] = 1
@@ -258,10 +217,12 @@ function add_to_map(current_position, distance, angle, side_flag)
 end
 
 function calculate_orientation(side_flag)
-    robot_orientation_radians = sim.getObjectOrientation(main_body, lilypad)
-    robot_orientation_degrees = math.floor(-1*side_flag*(robot_orientation_radians[2] * 180/math.pi ) + 0.5) - side_flag*90 -- We only need the beta angle we calculate intial angle from lilipad direction
+
+    eye_orientation = sim.getObjectOrientation(proximity_sensor[1], lilypad)
     
-    return robot_orientation_degrees
+
+
+    return eye_orientation[2]
 end
 
 --[[
