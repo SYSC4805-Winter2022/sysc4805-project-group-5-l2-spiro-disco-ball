@@ -158,7 +158,6 @@ function goTo(current_location, destination)
 
     neighborhood = 3
     if(math.abs(delta_x) < neighborhood and math.abs(delta_y) < neighborhood) then
-        print("Arrived")
         motor:move(0)
         return 1 -- return 1 as we have arrived
     end 
@@ -166,9 +165,11 @@ function goTo(current_location, destination)
     desired_angle_degrees = math.abs(math.floor((math.atan(delta_y/delta_x)  * (180/math.pi)) + 0.5))
     
     pos_or_neg_angle = 1
-    if(delta_y > 0) then
-        pos_or_neg_angle = -1
-    end
+    if(delta_y > 0) then pos_or_neg_angle = -1 end
+
+    loR = 1
+    if(delta_x < 0) then loR = -1 end
+
     
     desired_angle_degrees = desired_angle_degrees*pos_or_neg_angle
 
@@ -181,20 +182,26 @@ function goTo(current_location, destination)
         -- 45 > 46 and 45 < 44
         motor:move(0.05)
     else
-        if((current_orientation > dar[1]) or (current_orientation < dar[2])) then
-            if(delta_x < 0) then 
-                motor:rotate(-math.pi/2, 0)
-            else 
-                motor:rotate(-math.pi/4, 0)
-            end
-        elseif((current_orientation < dar[1]) or (current_orientation > dar[2])) then 
-            if(delta_x < 0) then
-                motor:rotate(-math.pi/2, 0)
+        -- Orientation needs to be fixed slightly - fix it
+        if((current_orientation < dar[1]) or (current_orientation > dar[2]))  then
+            if(current_orientation < dar[1]) then
+                print('angle good')
+                motor:rotate(loR*math.pi/4, 0)
             else
-                motor:rotate(-math.pi/2, 0)
+                print('angle overshot - correcting')
+                motor:rotate(-1*loR*math.pi/4)
+            end
+        elseif((current_orientation > dar[1]) or (current_orientation < dar[2])) then 
+            if(current_orientation < dar[1]) then
+                print('angle good')
+                motor:rotate(-1*loR*math.pi/4, 0)
+            else
+                print('angle overshot - correcting')
+                motor:rotate(loR*math.pi/4)
             end
         end
     end
+
     return 0 -- return 0 as we are still moving
 end
 
