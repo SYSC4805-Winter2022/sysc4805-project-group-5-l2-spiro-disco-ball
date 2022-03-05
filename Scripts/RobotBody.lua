@@ -40,7 +40,7 @@ LOCATION_INDEX = 1
 
 TIMESTEP = 4
 
-function init_body()
+function sysCall_init()
     --[[    
         Initialization of Motor Joints
     --]]
@@ -116,7 +116,7 @@ end
 --[[
     ACTUATION BODY FUNCTIONS
 ]]
-function actuation_body()
+function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
@@ -226,7 +226,7 @@ end
 --[[
     SENSING BODY FUNCTIONS
 ]]
-function sensing_body()
+function sysCall_sensing()
     -- Identifying the features of our enviroment
     record_environment({sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)}, {sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)})
 end
@@ -301,7 +301,7 @@ end
 --[[
     CLEAN UP BODY FUNCTIONS
 ]]
-function cleanup_body()
+function sysCall_cleanup()
     -- do some clean-up here
     print("Saving current map status")
     saveMap()
