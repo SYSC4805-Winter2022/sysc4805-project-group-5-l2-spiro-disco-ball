@@ -320,8 +320,6 @@ function saveMap()
     end
 
     pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/path_travelled.txt"
-    
-    print(pathStr)
     local file,err = io.open(pathStr,'w')
     if file then
         file:write(MapString)
