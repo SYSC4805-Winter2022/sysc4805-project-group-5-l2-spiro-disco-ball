@@ -59,6 +59,7 @@ function init_body()
 
     -- Set default wheel velocity
     nominal_velocity = 2
+    boundaryCondition = false
 
     sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     sim.setJointTargetVelocity(wheel_right, nominal_velocity)
@@ -110,7 +111,6 @@ function create_map(N, M)
 end
 
 
-
 --[[
     ACTUATION BODY FUNCTIONS
 ]]
@@ -124,6 +124,7 @@ function actuation_body()
     goTo(current_location, {45,45})
 
     --[[
+    
     if sim.getSimulationTime() - startTime >= TIMESTEP then
         startTime = sim.getSimulationTime()
         if movementState == "START" then
@@ -306,6 +307,9 @@ function saveMap()
     end
 
     local file,err = io.open("G:/sysc4805-project-group-5-l2-spiro-disco-ball/Paths/path_travelled_" .. file_num ..".txt",'w')
+    pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/path_travelled.txt"
+    print(pathStr)
+    local file,err = io.open(pathStr,'w')
     if file then
         file:write(MapString)
         file:close()
