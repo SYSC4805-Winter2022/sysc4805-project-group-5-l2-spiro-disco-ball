@@ -115,23 +115,24 @@ end
 function actuation_body()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
+    print(movementState)
     
     if sim.getSimulationTime() - startTime >= TIMESTEP then
         startTime = sim.getSimulationTime()
         if movementState == "START" then
             movementState = "left"
             motor:rotate(-math.pi/2/TIMESTEP, 0)
-        elseif movementState == "forwardL" then
+        elseif movementState == "forwardR" then
             movementState = "left"
             motor:rotate(-math.pi/TIMESTEP, -0.3)
         elseif movementState == "left" then
-            movementState = "forwardR"
+            movementState = "forwardL"
             motor:move(0.05)
-        elseif movementState == "forwardR" then
+        elseif movementState == "forwardL" then
             movementState = "right"
             motor:rotate(math.pi/TIMESTEP, 0.3)
         elseif movementState == "right" then
-            movementState = "forwardL"
+            movementState = "forwardR"
             motor:move(0.05)
         end
     end
