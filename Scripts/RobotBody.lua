@@ -34,6 +34,7 @@ PRECISION = 10 -- decimeter precision
 EYE_ANGLE = 90
 
 ANGLE_FACING = 90
+LAST_LOCATION = {-1, -1}
 
 TIMESTEP = 4
 
@@ -43,6 +44,7 @@ function init_body()
     --]]
     wheel_left       = sim.getObjectHandle("left_wheel") 
     wheel_right      = sim.getObjectHandle("right_wheel")
+    
     motor = MotorControl:new()
     movementState = "START"
     startTime = sim.getSimulationTime()
@@ -115,8 +117,13 @@ end
 function actuation_body()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
-    print(movementState)
-    
+
+    current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
+    current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
+
+    goTo(current_location, {45,45})
+
+    --[[
     if sim.getSimulationTime() - startTime >= TIMESTEP then
         startTime = sim.getSimulationTime()
         if movementState == "START" then
@@ -136,8 +143,60 @@ function actuation_body()
             motor:move(0.05)
         end
     end
-    
+    --]]
 end
+
+--- makes the robot move to a certain location on our grid
+---@param current_location tuple # set of coordinates describing the destination in [x,y]
+---@param destination tuple # set of coordinates describing current location in [x,y]
+function goTo(current_location, destination)
+    robot_orientation = sim.getObjectOrientation(main_body, lilypad)
+
+    delta_x = destination[1] - current_location[1]
+    delta_y = destination[2] - current_location[2]
+
+    neighborhood = 3
+    if(math.abs(delta_x) < neighborhood and math.abs(delta_y) < neighborhood) then
+        print("Arrived")
+        motor:move(0)
+        return 1 -- return 1 as we have arrived
+    end 
+
+    desired_angle_degrees = math.abs(math.floor((math.atan(delta_y/delta_x)  * (180/math.pi)) + 0.5))
+    
+    pos_or_neg_angle = 1
+    if(delta_y > 0) then
+        pos_or_neg_angle = -1
+    end
+    
+    desired_angle_degrees = desired_angle_degrees*pos_or_neg_angle
+
+    dar = {desired_angle_degrees + 3, desired_angle_degrees - 3}
+
+    current_orientation = math.floor((robot_orientation[2] * (180/math.pi)) + 0.5)
+
+    if((current_orientation <= (dar[1])) and (current_orientation >= (dar[2]))) then
+        --if our orientation is equal to +- 1 of the desired angle then we are travelling the right path
+        -- 45 > 46 and 45 < 44
+        motor:move(0.05)
+    else
+        if((current_orientation > dar[1]) or (current_orientation < dar[2])) then
+            if(delta_x < 0) then 
+                motor:rotate(-math.pi/2, 0)
+            else 
+                motor:rotate(-math.pi/4, 0)
+            end
+        elseif((current_orientation < dar[1]) or (current_orientation > dar[2])) then 
+            if(delta_x < 0) then
+                motor:rotate(-math.pi/2, 0)
+            else
+                motor:rotate(-math.pi/2, 0)
+            end
+        end
+    end
+    return 0 -- return 0 as we are still moving
+end
+
 
 function control_eyes()
     if EYE_ANGLE < -75 then
@@ -165,28 +224,35 @@ function record_environment(left_sensor, right_sensor)
     ]]
 
     location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
-
     location = {math.floor(((location[1] + 6)*PRECISION) + 0.5),  math.floor((location[2] * PRECISION) + 0.5)}
 
-    if(location[1] <= 0 or location[2] <= 0) then
+    if (LAST_LOCATION[1] == location[1] and LAST_LOCATION[2] == location[2]) then
         return nil
     else
-        MAP[location[2]][location[1]] = "@"
-    end
+        -- We only need to evaluate the location if it's actually changed since the last time
+        if(location[1] <= 0 or location[2] <= 0) then
+            return nil
+        else
+            MAP[location[2]][location[1]] = "@"
+        end
+         --[[
+            Using proximity sensors we examine the area for features and save them in our map
+        ]]
+        -- We did sense something .. yay! Now we record it
+        -- start by recording the pixels that are identified as being taken by what we detected
+        if(left_sensor[1] == 1) then
+            add_to_map(location, left_sensor[2]*PRECISION, 1)
+        end
 
-    --[[
-        Using proximity sensors we examine the area for features and save them in our map
-    ]]
-    -- We did sense something .. yay! Now we record it
-    -- start by recording the pixels that are identified as being taken by what we detected
-    if(left_sensor[1] == 1) then
-        add_to_map(location, left_sensor[2]*PRECISION, 1)
-    end
+        if(right_sensor[1] == 1) then
+            add_to_map(location, right_sensor[2]*PRECISION, 2)
+        end
 
-    if(right_sensor[1] == 1) then
-        add_to_map(location, right_sensor[2]*PRECISION, 2)
+        --saveMap()
+        
+        LAST_LOCATION[1] = location[1]
+        LAST_LOCATION[2] = location[2]
     end
-
 end
 
 
@@ -217,14 +283,6 @@ function add_to_map(current_position, distance, side)
     end
 end
 
-function calculate_orientation(side_flag)
-
-    eye_orientation = sim.getObjectOrientation(proximity_sensor[1], lilypad)
-    
-
-
-    return eye_orientation[2]
-end
 
 --[[
     CLEAN UP BODY FUNCTIONS
@@ -235,6 +293,8 @@ function cleanup_body()
     saveMap()
 end
 
+
+file_num = 0
 function saveMap()
     MapString = ""
 
@@ -245,10 +305,11 @@ function saveMap()
         MapString = MapString .. "\n"
     end
 
-    local file,err = io.open("G:/sysc4805-project-group-5-l2-spiro-disco-ball/path_travelled.txt",'w')
+    local file,err = io.open("G:/sysc4805-project-group-5-l2-spiro-disco-ball/Paths/path_travelled_" .. file_num ..".txt",'w')
     if file then
         file:write(MapString)
         file:close()
+        file_num = file_num + 1
     else
         print("error:", err) -- not so hard?
     end
