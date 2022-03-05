@@ -319,8 +319,8 @@ function saveMap()
         MapString = MapString .. "\n"
     end
 
-    local file,err = io.open("G:/sysc4805-project-group-5-l2-spiro-disco-ball/Paths/path_travelled_" .. file_num ..".txt",'w')
     pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/path_travelled.txt"
+    
     print(pathStr)
     local file,err = io.open(pathStr,'w')
     if file then
