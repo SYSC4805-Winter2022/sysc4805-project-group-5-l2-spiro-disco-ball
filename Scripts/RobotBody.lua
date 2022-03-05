@@ -36,6 +36,8 @@ EYE_ANGLE = 90
 ANGLE_FACING = 90
 LAST_LOCATION = {-1, -1}
 
+LOCATION_INDEX = 1
+
 TIMESTEP = 4
 
 function init_body()
@@ -121,10 +123,11 @@ function actuation_body()
     current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
     current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
 
-    goTo(current_location, {45,45})
+    list_of_locations = {{45,45}, {30, 5}, {80, 45}, {20, 45}}
+
+    if(goTo(current_location, list_of_locations[LOCATION_INDEX]) == 1) then LOCATION_INDEX = LOCATION_INDEX + 1 end
 
     --[[
-    
     if sim.getSimulationTime() - startTime >= TIMESTEP then
         startTime = sim.getSimulationTime()
         if movementState == "START" then
@@ -153,12 +156,15 @@ end
 function goTo(current_location, destination)
     robot_orientation = sim.getObjectOrientation(main_body, lilypad)
 
+    print(destination)
+
     delta_x = destination[1] - current_location[1]
     delta_y = destination[2] - current_location[2]
 
     neighborhood = 3
     if(math.abs(delta_x) < neighborhood and math.abs(delta_y) < neighborhood) then
         motor:move(0)
+        print("done")
         return 1 -- return 1 as we have arrived
     end 
 
@@ -185,18 +191,18 @@ function goTo(current_location, destination)
         -- Orientation needs to be fixed slightly - fix it
         if((current_orientation < dar[1]) or (current_orientation > dar[2]))  then
             if(current_orientation < dar[1]) then
-                print('angle good')
+                --print('angle good')
                 motor:rotate(loR*math.pi/4, 0)
             else
-                print('angle overshot - correcting')
+                --print('angle overshot - correcting')
                 motor:rotate(-1*loR*math.pi/4)
             end
         elseif((current_orientation > dar[1]) or (current_orientation < dar[2])) then 
             if(current_orientation < dar[1]) then
-                print('angle good')
+                --print('angle good')
                 motor:rotate(-1*loR*math.pi/4, 0)
             else
-                print('angle overshot - correcting')
+                --print('angle overshot - correcting')
                 motor:rotate(loR*math.pi/4)
             end
         end
