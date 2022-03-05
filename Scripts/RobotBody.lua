@@ -123,7 +123,7 @@ function sysCall_actuation()
     current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
     current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
 
-    list_of_locations = {{45,45}, {30, 5}, {80, 45}, {20, 45}}
+    list_of_locations = {{45,45}, {-1, -1}, {80, 45}, {20, 45}}
 
     if(goTo(current_location, list_of_locations[LOCATION_INDEX]) == 1) then LOCATION_INDEX = LOCATION_INDEX + 1 end
 
@@ -231,6 +231,18 @@ function sysCall_sensing()
     record_environment({sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)}, {sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)})
 end
 
+function is_boundaries()
+    count = 0
+    for i=1,3,1 do
+        result,data=sim.readVisionSensor(vision_sensor[i])
+        if(result >= 0) then
+            if(data[11] < 0.3) then
+                count = count + 1
+            end
+        end
+    end
+    return (count >= 2)
+end
 
 function record_environment(left_sensor, right_sensor)
     --[[
@@ -249,6 +261,10 @@ function record_environment(left_sensor, right_sensor)
         else
             MAP[location[2]][location[1]] = "@"
         end
+        --Add sensing for boundaries
+        if(is_boundaries()) then
+            MAP[location[2]][location[1]] = "B"
+        end
          --[[
             Using proximity sensors we examine the area for features and save them in our map
         ]]
@@ -262,6 +278,7 @@ function record_environment(left_sensor, right_sensor)
             add_to_map(location, right_sensor[2]*PRECISION, 2)
         end
 
+        
         --saveMap()
         
         LAST_LOCATION[1] = location[1]
