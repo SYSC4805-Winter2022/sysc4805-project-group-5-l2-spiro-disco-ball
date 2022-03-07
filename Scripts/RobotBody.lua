@@ -121,6 +121,11 @@ function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
+    -- Call cleaning
+    if sim.getSimulationTime() % 10 == 0 then
+        cleanMap()
+    end
+
     x = goTo(path[1])
     
     if x == 1 then
@@ -330,4 +335,83 @@ function saveMap()
     else
         print("error:", err) -- not so hard?
     end
+end
+
+function satisfiesElement(i,j, symbol, map)
+    --[[
+        We want a plus 3x3 shape element
+        was going to do a for loop but it is easier to experiment with shape
+        like this
+    ]]
+    if i ~= 1 then
+        topVal = (map[i-1][j] == symbol)
+    else
+        topVal = false
+    end
+    midVal = (map[i][j] == symbol)
+    if i ~= MAP_DIMENSIONS[1]*PRECISION then
+        botVal = (map[i+1][j] == symbol)
+    else
+        botVal = false
+    end
+    if j ~= MAP_DIMENSIONS[2]*PRECISION then 
+        rightVal = (map[i][j+1] == symbol)
+    else
+        rightVal=false
+    end
+    if j ~= 1 then
+        leftVal = (map[i][j-1] == symbol)
+    else 
+        leftVal = false
+    end
+    if (i ~= 1) and (j ~= MAP_DIMENSIONS[2]*PRECISION) then
+        topRightVal = (map[i-1][j+1] == symbol)
+    else
+        topRightVal = false
+    end
+    if (i ~= MAP_DIMENSIONS[1]*PRECISION) and (j ~= MAP_DIMENSIONS[2]*PRECISION) then
+        bottomRightVal = (map[i+1][j+1] == symbol)
+    else
+        bottomRightVal = false
+    end
+    if (i ~= 1) and (j ~= 1) then
+        topLeftVal = (map[i-1][j-1] == symbol)
+    else
+        topLeftVal = false
+    end
+    if (i ~= MAP_DIMENSIONS[1]*PRECISION) and (j ~= 1) then
+        bottomLeftVal = (map[i+1][j-1] == symbol)
+    else
+        bottomLeftVal = false
+    end
+    return (topVal or midVal or botVal or rightVal or leftVal or topRightVal or topLeftVal or bottomLeftVal or bottomRightVal)
+end
+function cleanMap()
+    dialated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
+    erroted = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
+    --preform dialation for the map
+    for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
+        for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
+            if satisfiesElement(i,j,1, MAP) then
+                print("hit")
+                dialated[i][j] = 1
+            else
+                dialated[i][j] = MAP[i][j]
+            end
+        end
+    end
+
+    --[[
+    --preform errosion
+    for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
+        for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
+            if satisfiesElement(i,j, "1", dialated) then
+                erroted[j][i] = "."
+            else
+                erroted[j][i]= dialated[j][i]
+            end
+        end
+    end
+    ]]
+    MAP = dialated
 end
