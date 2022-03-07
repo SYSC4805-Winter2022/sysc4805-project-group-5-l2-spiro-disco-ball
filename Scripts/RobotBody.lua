@@ -91,7 +91,7 @@ function sysCall_init()
     MAP = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION) -- Our map is 12x12M each M^2 is divided into PRECISION # of slices
 
     -- Create the initial 1 cell path
-    path = pathFinder:Boustrophedon({{60, 1}, {45, 45}, {60, 45}})
+    path = pathFinder:Boustrophedon({{70, 1}, {45, 45}, {60, 45}})
     print(path)
     print("Starting simulation")
     -- Initialization done - Commence plowing sequence
@@ -387,31 +387,28 @@ function satisfiesElement(i,j, symbol, map)
     return (topVal or midVal or botVal or rightVal or leftVal or topRightVal or topLeftVal or bottomLeftVal or bottomRightVal)
 end
 function cleanMap()
-    dialated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
+    dilated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
     erroted = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
     --preform dialation for the map
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
             if satisfiesElement(i,j,1, MAP) then
-                print("hit")
-                dialated[i][j] = 1
+                dilated[i][j] = 1
             else
-                dialated[i][j] = MAP[i][j]
+                dilated[i][j] = MAP[i][j]
             end
         end
     end
 
-    --[[
     --preform errosion
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if satisfiesElement(i,j, "1", dialated) then
+            if satisfiesElement(i,j, 1, dilated) then
                 erroted[j][i] = "."
             else
-                erroted[j][i]= dialated[j][i]
+                erroted[j][i]= dilated[j][i]
             end
         end
     end
-    ]]
-    MAP = dialated
+    MAP = erroted
 end
