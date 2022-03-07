@@ -22,9 +22,7 @@ function MotorControl:new(obj)
     self.__index = self -- allows inheritence as used in https://www.lua.org/pil/16.2.html
     obj.left  = sim.getObjectHandle("left_wheel")
     obj.right = sim.getObjectHandle("right_wheel")
-    
-    obj.main_body = sim.getObjectHandle("plow_motor")
-    obj.lilypad = sim.getObjectHandle("_lilypad")
+
     return obj
 end
 

@@ -27,6 +27,7 @@
     Happy Hacking!
     - David
 --]]
+local PathFinding = require("Scripts/PathFinding")
 local MotorControl = require("Scripts/MotorControl")
 
 MAP_DIMENSIONS = {12,12} -- 12x12 M map
@@ -46,9 +47,8 @@ function sysCall_init()
     --]]
     wheel_left       = sim.getObjectHandle("left_wheel") 
     wheel_right      = sim.getObjectHandle("right_wheel")
-    
+
     motor = MotorControl:new()
-    movementState = "START"
     startTime = sim.getSimulationTime()
     -- Initialize the central plow vertical motor and both wings
     plowMotor_center = sim.getObjectHandle("plow_motor") 
@@ -66,7 +66,6 @@ function sysCall_init()
     sim.setJointTargetVelocity(wheel_left, nominal_velocity)
     sim.setJointTargetVelocity(wheel_right, nominal_velocity)
 
-
     --[[
         Initialization of Sensors
     --]]
@@ -76,8 +75,6 @@ function sysCall_init()
     vision_sensor[1] = sim.getObjectHandle("left_detector") 
     vision_sensor[2] = sim.getObjectHandle("center_detector")
     vision_sensor[3] = sim.getObjectHandle("right_detector")
-
-
 
     proximity_sensor = {-1, -1}
     -- Initialize the proximity sensors for detection of obstacles
@@ -89,9 +86,13 @@ function sysCall_init()
     --]]
     main_body = sim.getObjectHandle("plow_motor") -- Note: We don't use the body, I believe that the body contains the static lilypad also which messes with it
     lilypad = sim.getObjectHandle("_lilypad")
+    pathFinder = PathFinding:new()
 
     MAP = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION) -- Our map is 12x12M each M^2 is divided into PRECISION # of slices
 
+    -- Create the initial 1 cell path
+    path = pathFinder:Boustrophedon({{60, 1}, {45, 45}, {60, 45}})
+    print(path)
     print("Starting simulation")
     -- Initialization done - Commence plowing sequence
 end
@@ -120,43 +121,38 @@ function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
-    current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
-    current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
+    x = goTo(path[1])
+    
+    if x == 1 then
+        table.remove(path, 1)
+        print(path[1])
+    elseif x == -1 then
+        -- here we will re-evalute our cellular decomposition as it was deemed incorrect
+    else
 
-    list_of_locations = {{45,45}, {-1, -1}, {80, 45}, {20, 45}}
-
-    if(goTo(current_location, list_of_locations[LOCATION_INDEX]) == 1) then LOCATION_INDEX = LOCATION_INDEX + 1 end
-
-    --[[
-    if sim.getSimulationTime() - startTime >= TIMESTEP then
-        startTime = sim.getSimulationTime()
-        if movementState == "START" then
-            movementState = "left"
-            motor:rotate(-math.pi/2/TIMESTEP, 0)
-        elseif movementState == "forwardR" then
-            movementState = "left"
-            motor:rotate(-math.pi/TIMESTEP, -0.3)
-        elseif movementState == "left" then
-            movementState = "forwardL"
-            motor:move(0.05)
-        elseif movementState == "forwardL" then
-            movementState = "right"
-            motor:rotate(math.pi/TIMESTEP, 0.3)
-        elseif movementState == "right" then
-            movementState = "forwardR"
-            motor:move(0.05)
-        end
     end
-    --]]
+
+end
+
+function control_eyes()
+    if EYE_ANGLE < 0 then
+        EYE_ANGLE = 110
+    else
+        EYE_ANGLE = EYE_ANGLE - 2
+    end
+
+    sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (math.pi/180))
+    sim.setJointTargetPosition(eye_right, EYE_ANGLE * (math.pi/180))
 end
 
 --- makes the robot move to a certain location on our grid
 ---@param current_location tuple # set of coordinates describing the destination in [x,y]
 ---@param destination tuple # set of coordinates describing current location in [x,y]
-function goTo(current_location, destination)
-    robot_orientation = sim.getObjectOrientation(main_body, lilypad)
+function goTo(destination)
+    current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
+    current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
 
-    print(destination)
+    robot_orientation = sim.getObjectOrientation(main_body, lilypad)
 
     delta_x = destination[1] - current_location[1]
     delta_y = destination[2] - current_location[2]
@@ -164,7 +160,6 @@ function goTo(current_location, destination)
     neighborhood = 3
     if(math.abs(delta_x) < neighborhood and math.abs(delta_y) < neighborhood) then
         motor:move(0)
-        print("done")
         return 1 -- return 1 as we have arrived
     end 
 
@@ -179,7 +174,7 @@ function goTo(current_location, destination)
     
     desired_angle_degrees = desired_angle_degrees*pos_or_neg_angle
 
-    dar = {desired_angle_degrees + 3, desired_angle_degrees - 3}
+    dar = {desired_angle_degrees + 2, desired_angle_degrees - 2}
 
     current_orientation = math.floor((robot_orientation[2] * (180/math.pi)) + 0.5)
 
@@ -207,21 +202,11 @@ function goTo(current_location, destination)
             end
         end
     end
+    
+    return pathFinder:line_of_sight(current_location, destination)
 
-    return 0 -- return 0 as we are still moving
 end
 
-
-function control_eyes()
-    if EYE_ANGLE < -75 then
-        EYE_ANGLE = 100
-    else
-        EYE_ANGLE = EYE_ANGLE - 2
-    end
-
-    sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (math.pi/180))
-    sim.setJointTargetPosition(eye_right, EYE_ANGLE * (math.pi/180))
-end
 
 --[[
     SENSING BODY FUNCTIONS
@@ -328,7 +313,7 @@ end
 file_num = 0
 function saveMap()
     MapString = ""
-
+    pathFinder:CellDecomposition()
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
         for j = 1, MAP_DIMENSIONS[2]*PRECISION do
             MapString = MapString.. " " .. MAP[j][i]
