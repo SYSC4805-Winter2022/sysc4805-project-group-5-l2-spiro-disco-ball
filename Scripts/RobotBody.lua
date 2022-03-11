@@ -60,7 +60,7 @@ function sysCall_init()
     eye_right        = sim.getObjectHandle("right_eye") 
 
     -- Set default wheel velocity
-    nominal_velocity = 2
+    nominal_velocity = 10
     boundaryCondition = false
 
     sim.setJointTargetVelocity(wheel_left, nominal_velocity)
@@ -91,8 +91,8 @@ function sysCall_init()
     MAP = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION) -- Our map is 12x12M each M^2 is divided into PRECISION # of slices
 
     -- Create the initial 1 cell path
-    path = pathFinder:Boustrophedon({{70, 1}, {45, 45}, {60, 45}})
-    print(path)
+    path = pathFinder:Boustrophedon({{30, 5}, {90, 5}, {30, 60}, {90, 60}})
+    path = {{30, 5}, {90, 5}, {30, 60}, {90, 60}}
     print("Starting simulation")
     -- Initialization done - Commence plowing sequence
 end
@@ -120,11 +120,6 @@ end
 function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
-
-    -- Call cleaning
-    if sim.getSimulationTime() % 10 == 0 then
-        cleanMap()
-    end
 
     x = goTo(path[1])
     
@@ -186,7 +181,7 @@ function goTo(destination)
     if((current_orientation <= (dar[1])) and (current_orientation >= (dar[2]))) then
         --if our orientation is equal to +- 1 of the desired angle then we are travelling the right path
         -- 45 > 46 and 45 < 44
-        motor:move(0.05)
+        motor:move(0.1)--0.05)
     else
         -- Orientation needs to be fixed slightly - fix it
         if((current_orientation < dar[1]) or (current_orientation > dar[2]))  then
@@ -219,6 +214,13 @@ end
 function sysCall_sensing()
     -- Identifying the features of our enviroment
     record_environment({sim.checkProximitySensor(proximity_sensor[1], sim.handle_all)}, {sim.checkProximitySensor(proximity_sensor[2], sim.handle_all)})
+
+    --Call cleaning
+    if sim.getSimulationTime() % 10 == 0 then
+        cleanMap()
+    end
+
+
 end
 
 function is_boundaries()
@@ -267,9 +269,6 @@ function record_environment(left_sensor, right_sensor)
         if(right_sensor[1] == 1) then
             add_to_map(location, right_sensor[2]*PRECISION, 2)
         end
-
-        
-        --saveMap()
         
         LAST_LOCATION[1] = location[1]
         LAST_LOCATION[2] = location[2]
@@ -326,14 +325,15 @@ function saveMap()
         MapString = MapString .. "\n"
     end
 
-    pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/path_travelled.txt"
+    pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/Paths/path_travelled_" .. file_num ..".txt"
     local file,err = io.open(pathStr,'w')
     if file then
         file:write(MapString)
         file:close()
         file_num = file_num + 1
+        print("File has been saved")
     else
-        print("error:", err) -- not so hard?
+        print("error saving file:", err)
     end
 end
 
@@ -386,6 +386,8 @@ function satisfiesElement(i,j, symbol, map)
     end
     return (topVal or midVal or botVal or rightVal or leftVal or topRightVal or topLeftVal or bottomLeftVal or bottomRightVal)
 end
+
+
 function cleanMap()
     dilated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
     erroted = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
@@ -404,6 +406,7 @@ function cleanMap()
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
             if satisfiesElement(i,j, 1, dilated) then
+                
                 erroted[j][i] = "."
             else
                 erroted[j][i]= dilated[j][i]
