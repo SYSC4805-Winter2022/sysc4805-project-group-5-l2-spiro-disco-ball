@@ -149,67 +149,75 @@ function control_eyes()
     sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (math.pi/180))
     sim.setJointTargetPosition(eye_right, EYE_ANGLE * (math.pi/180))
 end
-
+--- converts grid coordinates to native coppelia sim coordinates
+---@param gridcoord  {[1]:number, [2]:number}
+---@return {[1]:number, [2]:number}
+function grid2NativeUnits(gridcoord)
+    return {gridcoord[1]/PRECISION - 6, gridcoord[2]/PRECISION - 6}
+end
 --- makes the robot move to a certain location on our grid
----@param current_location tuple # set of coordinates describing the destination in [x,y]
----@param destination tuple # set of coordinates describing current location in [x,y]
+---@param destination {[1]:number, [2]:number} # set of grid coordinates describing current location in [x,y]
 function goTo(destination)
-    current_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
-    current_location = {math.floor(((current_location[1] + 6)*PRECISION) + 0.5),  math.floor((current_location[2] * PRECISION) + 0.5)}
-
-    robot_orientation = sim.getObjectOrientation(main_body, lilypad)
-
-    delta_x = destination[1] - current_location[1]
-    delta_y = destination[2] - current_location[2]
-
-    neighborhood = 3
-    if(math.abs(delta_x) < neighborhood and math.abs(delta_y) < neighborhood) then
+    local rel_movement = motor:getRelMotion(grid2NativeUnits(destination))
+    -- local rel_movement = motor:getRelMotion({1, -5})
+    -- print("REL", rel_movement)
+    local forw = rel_movement[1] -- amount we want to move forward (may be negative)
+    local side = rel_movement[2] -- amount we want to move sideways (may be negative)
+    -- print("cur pos", motor:getPosition())
+    -- print("forward, side", forw, side)
+    local should_turn = true -- set to false in forward cases, could be avoided if this function wasn't expected to return LOS info
+    local neighborhood = 3/PRECISION
+    if math.abs(forw) <= neighborhood and math.abs(side) <= neighborhood then
         motor:move(0)
         return 1 -- return 1 as we have arrived
-    end 
-
-    desired_angle_degrees = math.abs(math.floor((math.atan(delta_y/delta_x)  * (180/math.pi)) + 0.5))
-    
-    pos_or_neg_angle = 1
-    if(delta_y > 0) then pos_or_neg_angle = -1 end
-
-    loR = 1
-    if(delta_x < 0) then loR = -1 end
-
-    
-    desired_angle_degrees = desired_angle_degrees*pos_or_neg_angle
-
-    dar = {desired_angle_degrees + 2, desired_angle_degrees - 2}
-
-    current_orientation = math.floor((robot_orientation[2] * (180/math.pi)) + 0.5)
-
-    if((current_orientation <= (dar[1])) and (current_orientation >= (dar[2]))) then
-        --if our orientation is equal to +- 1 of the desired angle then we are travelling the right path
-        -- 45 > 46 and 45 < 44
-        motor:move(0.05)
-    else
-        -- Orientation needs to be fixed slightly - fix it
-        if((current_orientation < dar[1]) or (current_orientation > dar[2]))  then
-            if(current_orientation < dar[1]) then
-                --print('angle good')
-                motor:rotate(loR*math.pi/4, 0)
-            else
-                --print('angle overshot - correcting')
-                motor:rotate(-1*loR*math.pi/4)
-            end
-        elseif((current_orientation > dar[1]) or (current_orientation < dar[2])) then 
-            if(current_orientation < dar[1]) then
-                --print('angle good')
-                motor:rotate(-1*loR*math.pi/4, 0)
-            else
-                --print('angle overshot - correcting')
-                motor:rotate(loR*math.pi/4)
-            end
+    end
+    if forw > 0 then
+        -- few cases to move forward, can also fall through for 'should turn in place' case.
+        local side_forw_ratio = math.abs(side/forw)
+        -- threshold for side/forw ratio to not even bother turning, this is mainly only needed since we are 
+        -- parameterizing the turning by how far the center is instead of curvature so the case where you go straight
+        -- would set distance to infinity and cause problems so this is mostly needed to cope with numerical stuff.
+        local FORW_ONLY_THRESHOLD = 0.0001
+        -- threshold for side/forw to try to move in an arc towards goal, setting this low means the robot would
+        -- pause and correct it's orientation a lot and a high value means it won't necessarily go in straight lines much.
+        -- this is effectively tan(d) where d is the angle you'd correct, so 2deg -> 0.035, 6deg -> 0.1
+        local CORRECTION_THRESHOLD = 0.1
+        local FORW_SPEED = 0.3
+        -- if forw < 2*neighborhood then
+        --     FORW_SPEED = 0.04 -- when we are getting pretty close slow down slightly
+        -- end
+        -- print("FORW", forw)
+        -- print("SIDE", side)
+        -- print("RATIO", side_forw_ratio)
+        if side_forw_ratio < FORW_ONLY_THRESHOLD then
+            -- the center of rotation would be so far away we might get rounding errors, so just move straight.
+            motor:move(FORW_SPEED)
+            should_turn = false
+        elseif side_forw_ratio < CORRECTION_THRESHOLD then
+            
+            -- we are mostly moving forward but are a little off so curve towards target
+            -- I worked through this formula on paper, basically the point {0,0} and {forw,side} form 2 points on a circle
+            -- the center of the circle will be the intersection of the radius like going strait up and the
+            -- perpendicular bisector of the cord connecting the 2 points, calculating the y position of the center works out to (x^2+y^2)/(2y)
+            -- I don't have any inuition on why it is the answer, it's just what the math works out to.
+            local centerOfRotation = (forw*forw)/(2*side) + side/2
+            motor:rotate(FORW_SPEED/centerOfRotation, centerOfRotation)
+            should_turn = false
+            -- print("CURVING forward", centerOfRotation)
+        end
+        -- otherwise fall through to 'turn in place' case below
+    end
+    if should_turn then
+        -- print("rotating")
+        if side > 0 then
+            motor:rotate(math.pi/4)
+        else
+            motor:rotate(-math.pi/4)
         end
     end
-    
-    return pathFinder:line_of_sight(current_location, destination)
-
+    -- returns 0 if the line of sight is good, -1 if los is broken
+    return pathFinder:line_of_sight(motor:getGridPosition(true), destination)
+    -- return 0
 end
 
 
