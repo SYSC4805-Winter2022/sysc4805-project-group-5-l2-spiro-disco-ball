@@ -267,7 +267,9 @@ end
 -- using the DDA algorithm we can establish a line of elements that can be used to create paths and check lines of sight
 function DDA(start_loc, end_loc, LOS)
     LOS = LOS == nil or true and false
-
+    if start_loc[1] < 0 or start_loc[2] < 0 or end_loc[1] < 0 or end_loc[2] < 0 then
+        print("DDA GOT NEGATIVE POSITION", start_loc, end_loc)
+    end
     -- DDA
     delta_x = end_loc[1] - start_loc[1]
     delta_y = end_loc[2] - start_loc[2]
