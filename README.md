@@ -25,6 +25,8 @@ Task | Contributor | Advisors
 Create Github repository and associated projects | David Casciano | Aedyn Ladd
 Create gantt chart, reponsibility matrix, and state diagram | David Casciano | N/A
 Create infrastructure for version controlling | David Casciano | Daniel Tura and Aedyn Ladd
+Research Morphology | David Casciano  | Aedyn Ladd
+Implement Morphology | David Casciano | Aedyn Ladd
 Created robot model | Aedyn Ladd | N/A
 Added sensors and motors to model | Aedynn Ladd | N/A
 Progress Report and Proposal Contributions | Aedyn Ladd | N/A
