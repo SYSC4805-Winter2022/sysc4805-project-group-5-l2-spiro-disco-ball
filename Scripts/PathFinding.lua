@@ -31,7 +31,7 @@ function PathFinding:Boustrophedon(cell_bounds)
         for index, coordinate in ipairs(cell_bounds)
         do
             -- for all remaining coords, find the path
-            path = DDA(this_cell, coordinate, true)
+            path = DDA(this_cell, coordinate, false)
             -- with the line of sight path, concatenate it with the boustrophedon path
             for index, value in ipairs(path) do
                 if(boustrophedon_path[value[2]] == nil) then
@@ -93,19 +93,138 @@ function PathFinding:CellDecomposition()
 
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
-    points_of_interest = harris(gradient, 10000, 0.06) 
-
+    points_of_interest = harris(gradient, 5000, 0.06) 
     cluster_locations = DBSCAN(points_of_interest, 5, 3)
 
     for cluster = 1, #cluster_locations do
         MAP[math.floor(cluster_locations[cluster][1])][math.floor(cluster_locations[cluster][2])] = "$"
     end
 
-    -- Now we've succesfully (in a perfect world) the locations of all corners currently known to the robot
-    
-    print("Corner List has been completed")
+    --Now we've succesfully defined the locations of all corners currently known to the robot
+    cell_geometry = create_cells(cluster_locations)
 
 end
+
+function create_cells(set_of_points)
+    -- First -- Sort the set of points by their y values - we want to move across the map along this direction
+    organized_points = {}
+    for point = 1, #set_of_points do
+        if organized_points[set_of_points[point][1]] == nil then
+            organized_points[math.floor(set_of_points[point][1] + 0.5)] = {}
+        end
+        table.insert(organized_points[math.floor(set_of_points[point][1] + 0.5)], math.floor(set_of_points[point][2] + 0.5))
+    end
+    organized_points[0] = {}
+    organized_points[MAP_DIMENSIONS[1]*PRECISION] = {}
+    -- Map Corners will always be considered for the cell decomposition? this isnt actually always true and should be removed but for testing we can keep it -- 
+    table.insert(organized_points[0], MAP_DIMENSIONS[1]*PRECISION)
+    table.insert(organized_points[0], 0)
+    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], 0)
+    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], MAP_DIMENSIONS[1]*PRECISION) 
+
+    -- Second -- use these points to create slices along the y axis
+    polygon_list = {}
+    -- y_val represents us moving across the map 
+    -- our x_val represents moving up and down
+    last_y_val_list = {}
+    for y_val, x_val in next, organized_points do
+        table.sort(x_val)
+        -- We slide across our y axis and take a look at all points that come up for each value set. these can be used to build our cells
+        -- if we could potentially build a list
+        x_val_new = {}
+        if(#last_y_val_list >= 2) then
+            for index, val in next, x_val do
+                -- extend this point up and down these become seperate polygons that we connect
+                extend_up = DDA({val, y_val}, {0, y_val}, false)
+
+                half_way_point_up = extend_up[math.floor(#extend_up/2)]
+                extend_up_point = extend_up[#extend_up]
+
+                extend_down = DDA({val, y_val}, {MAP_DIMENSIONS[1]*PRECISION, y_val}, false) 
+                extend_down_point = extend_down[#extend_down]
+                half_way_point_down = extend_up[math.floor(#extend_up/2 + 1)]
+
+                -- If the point extended both up and down then we build a polygon based on just extended down and extended up points not the mid
+                -- the mid point is only useful on the next round when we plan to build a new polygon based on this last set of points
+                if(#extend_down > PRECISION/2 and #extend_up > PRECISION/2) then
+                    -- build a single longer polygon composed of top and bottom points
+                    indexA = index + 1
+                    -- if our index is out of range of our last_y_val_list
+                    if(indexA > #last_y_val_list[2] - 1) then
+                        indexA = #last_y_val_list - 1 -- we keep it in range
+                    end
+                    -- indexA is not the same as our index we can create the polygon, otherwise this point is useless
+                    if(indexA ~= index) then
+                        print("creating a long polygon")
+                        polygon_long = {
+                            -- 
+                            {last_y_val_list[1],last_y_val_list[2][index]}, -- top left 
+                            {last_y_val_list[1],last_y_val_list[2][indexA]}, -- bottom left
+                            -- We use the points we just defined
+                            extend_up_point, -- top right
+                            extend_down_point, -- bottom right
+                        }  
+                        -- make not of top line point, bottom line point, and center line point
+                        table.insert(x_val_new, extend_up_point[1])
+                        table.insert(x_val_new, extend_down_point[1])
+                        table.insert(x_val_new, val)
+
+                        table.insert(polygon_list, polygon_long)
+
+                    end
+                else
+                    -- build a single polygon from this point
+                    extension_point = nil
+                    print("DOWN")
+                    print(extend_down)
+                    print("UP")
+                    print(extend_up)
+                    if(#extend_up > #extend_down) then
+                        extension_point = extend_up_point
+                        
+                    else 
+                        extension_point = extend_down_point
+                    end
+
+                    indexA = index + 1
+                    -- if our index is out of range of our last_y_val_list
+                    if(indexA > #last_y_val_list[2] - 1) then
+                        indexA = #last_y_val_list - 1 -- we keep it in range
+                    end
+                    -- indexA is not the same as our index we can create the polygon, otherwise this point is useless
+                    if(indexA ~= index) then
+                        print("creating a normal polygon")
+                        polygon = {
+                            {last_y_val_list[1], last_y_val_list[2][index]}, -- top left 
+                            {last_y_val_list[1], last_y_val_list[2][indexA]}, -- bottom left
+                            -- We use the points we just defined
+                            {y_val, val}, -- a point on the right - this just indicates the corner point we are using
+                            extension_point, -- a point on the right
+                        }
+                        print(polygon)
+                        -- Here we just insert our extension point and the val
+                        table.insert(x_val_new, extension_point[1])
+                        table.insert(x_val_new, val)
+
+                        table.insert(polygon_list, polygon) 
+                    end
+                end
+            end
+
+            table.sort(x_val_new)
+            last_y_val_list = {y_val, x_val_new}
+        end
+
+        if(#x_val_new == 0) then 
+            last_y_val_list = {y_val, x_val}
+        end
+    end
+
+    print(polygon_list)
+    return polygon_list
+    
+end
+
 
 function PathFinding:applyKernel(kernel, coordinate, matrix, element) return _applyKernel(kernel, coordinate, matrix, element) end
 
@@ -130,8 +249,8 @@ function DBSCAN(corner_list, epsilon, minPts)
     cluster_list = {}
     centroid = {}
     for C1 = 1, #corner_list do
-        if cluster_list[C1] ~= nil then
-            -- this point was already processed - skip
+        if cluster_list[C1] ~= nil or corner_list[C1] == nil then
+            -- this point was already processed or is weird - skip
         else 
             neighbors = neighbors_distance(corner_list, C1, corner_list[C1], epsilon)
             if #neighbors < minPts then
@@ -172,13 +291,19 @@ end
 
 function neighbors_distance(corner_list, ignore_index, point, epsilon)
     dist_list = {}
-
+    if(#corner_list < 1) then
+        return {-1}
+    end
     neighbor_count = 0
     for C1 = 1, #corner_list do
-        dist = math.sqrt((math.abs(corner_list[C1][1] - point[1]))^2  + (math.abs(corner_list[C1][2] - point[2]))^2) 
-        if(C1 ~= ignore_index and dist < epsilon) then
-            neighbor_count = neighbor_count + 1
-            dist_list[neighbor_count] = C1 -- Save the neighbor index
+        if corner_list[C1] == nil or point == nil then
+            -- ??? no clue ????
+        else 
+            dist = math.sqrt((math.abs(corner_list[C1][1] - point[1]))^2  + (math.abs(corner_list[C1][2] - point[2]))^2) 
+            if(C1 ~= ignore_index and dist < epsilon) then
+                neighbor_count = neighbor_count + 1
+                dist_list[neighbor_count] = C1 -- Save the neighbor index
+            end
         end
     end
 
@@ -233,14 +358,6 @@ function harris(gradient, threshold, k)
     return corners
 end
 
-function create_cells(set_of_points)
-    -- First -- Sort the set of points by their y values - we want to move across the map
-
-    -- Second -- use these points to create slices along the y axis
-
-    
-end
-
 function gradient(matrix)
     --[[
         define the gradient of the map
@@ -261,12 +378,11 @@ end
 
 -- using DDA function set to line of sight finding for future use
 function PathFinding:line_of_sight(start_loc, end_loc)
-    return DDA(start_loc, end_loc)
+    return DDA(start_loc, end_loc, false)
 end
 
 -- using the DDA algorithm we can establish a line of elements that can be used to create paths and check lines of sight
 function DDA(start_loc, end_loc, LOS)
-    LOS = LOS == nil or true and false
     if start_loc[1] < 0 or start_loc[2] < 0 or end_loc[1] < 0 or end_loc[2] < 0 then
         print("DDA GOT NEGATIVE POSITION", start_loc, end_loc)
     end
