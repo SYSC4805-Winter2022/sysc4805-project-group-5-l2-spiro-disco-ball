@@ -177,7 +177,7 @@ function goTo(destination)
         -- pause and correct it's orientation a lot and a high value means it won't necessarily go in straight lines much.
         -- this is effectively tan(d) where d is the angle you'd correct, so 2deg -> 0.035, 6deg -> 0.1
         local CORRECTION_THRESHOLD = 0.1
-        local FORW_SPEED = 0.3
+        local FORW_SPEED = 0.6
         -- if forw < 2*neighborhood then
         --     FORW_SPEED = 0.04 -- when we are getting pretty close slow down slightly
         -- end
