@@ -93,13 +93,13 @@ function PathFinding:CellDecomposition()
 
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
-    points_of_interest = harris(gradient, 5000, 0.06) 
-    cluster_locations = DBSCAN(points_of_interest, 5, 3)
+    points_of_interest = harris(gradient, 15000, 0.06) 
+    cluster_locations = DBSCAN(points_of_interest, 3, 3)
 
     for cluster = 1, #cluster_locations do
         MAP[math.floor(cluster_locations[cluster][1])][math.floor(cluster_locations[cluster][2])] = "$"
     end
-
+    print(cluster_locations)
     --Now we've succesfully defined the locations of all corners currently known to the robot
     cell_geometry = create_cells(cluster_locations)
 
@@ -114,116 +114,152 @@ function create_cells(set_of_points)
         end
         table.insert(organized_points[math.floor(set_of_points[point][1] + 0.5)], math.floor(set_of_points[point][2] + 0.5))
     end
-    organized_points[0] = {}
-    organized_points[MAP_DIMENSIONS[1]*PRECISION] = {}
-    -- Map Corners will always be considered for the cell decomposition? this isnt actually always true and should be removed but for testing we can keep it -- 
-    table.insert(organized_points[0], MAP_DIMENSIONS[1]*PRECISION)
-    table.insert(organized_points[0], 0)
-    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], 0)
-    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], MAP_DIMENSIONS[1]*PRECISION) 
 
-    -- Second -- use these points to create slices along the y axis
-    polygon_list = {}
-    -- y_val represents us moving across the map 
-    -- our x_val represents moving up and down
-    last_y_val_list = {}
+    organized_points[1] = {}
+    organized_points[MAP_DIMENSIONS[1]*PRECISION] = {}
+    -- Map Corners will always be considered for the cell decomposition
+    table.insert(organized_points[1], 1)
+    table.insert(organized_points[1], MAP_DIMENSIONS[1]*PRECISION)
+    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], 1)
+    table.insert(organized_points[MAP_DIMENSIONS[1]*PRECISION], MAP_DIMENSIONS[1]*PRECISION) 
+    
+    -- sort the list of organized points
+    table.sort(organized_points)
+
+    -- Second -- use these points to create edges along the y axis
+    edge_list = {}
+    -- move across the map
     for y_val, x_val in next, organized_points do
         table.sort(x_val)
-        -- We slide across our y axis and take a look at all points that come up for each value set. these can be used to build our cells
-        -- if we could potentially build a list
-        x_val_new = {}
-        if(#last_y_val_list >= 2) then
-            for index, val in next, x_val do
-                -- extend this point up and down these become seperate polygons that we connect
-                extend_up = DDA({val, y_val}, {0, y_val}, false)
+        edge_list[y_val] = {}
+        special_case_extend_nil_edge = nil
 
-                half_way_point_up = extend_up[math.floor(#extend_up/2)]
-                extend_up_point = extend_up[#extend_up]
+        -- a special case of the top value being a full nil
+        replacement_up = 0
+        -- cycle through our points and create a list of edges
+        for index, val in next, x_val do
+            -- Extend the point up and down (along x)
+            up_value, down_value = _extend_up_down({y_val, val})
 
-                extend_down = DDA({val, y_val}, {MAP_DIMENSIONS[1]*PRECISION, y_val}, false) 
-                extend_down_point = extend_down[#extend_down]
-                half_way_point_down = extend_up[math.floor(#extend_up/2 + 1)]
-
-                -- If the point extended both up and down then we build a polygon based on just extended down and extended up points not the mid
-                -- the mid point is only useful on the next round when we plan to build a new polygon based on this last set of points
-                if(#extend_down > PRECISION/2 and #extend_up > PRECISION/2) then
-                    -- build a single longer polygon composed of top and bottom points
-                    indexA = index + 1
-                    -- if our index is out of range of our last_y_val_list
-                    if(indexA > #last_y_val_list[2] - 1) then
-                        indexA = #last_y_val_list - 1 -- we keep it in range
-                    end
-                    -- indexA is not the same as our index we can create the polygon, otherwise this point is useless
-                    if(indexA ~= index) then
-                        print("creating a long polygon")
-                        polygon_long = {
-                            -- 
-                            {last_y_val_list[1],last_y_val_list[2][index]}, -- top left 
-                            {last_y_val_list[1],last_y_val_list[2][indexA]}, -- bottom left
-                            -- We use the points we just defined
-                            extend_up_point, -- top right
-                            extend_down_point, -- bottom right
-                        }  
-                        -- make not of top line point, bottom line point, and center line point
-                        table.insert(x_val_new, extend_up_point[1])
-                        table.insert(x_val_new, extend_down_point[1])
-                        table.insert(x_val_new, val)
-
-                        table.insert(polygon_list, polygon_long)
-
-                    end
+            if(up_value ~= nil and down_value ~= nil) then
+                -- point is directly on an edge but can extend up and down in both directions into freespace
+                -- the edge we create is the combination of up and down value but we still need to create two seperate edges
+                if(replacement_up == 0) then 
+                    table.insert(edge_list[y_val], {y_val, up_value, val}) -- create the edge ex... { 1 : {1, 120}} is a vertical line from top to bottom
                 else
-                    -- build a single polygon from this point
-                    extension_point = nil
-                    print("DOWN")
-                    print(extend_down)
-                    print("UP")
-                    print(extend_up)
-                    if(#extend_up > #extend_down) then
-                        extension_point = extend_up_point
-                        
-                    else 
-                        extension_point = extend_down_point
-                    end
+                    -- we have a replacement up point indicated here so our up value becomes the new replacement up value
+                    table.insert(edge_list[y_val], {y_val, replacement_up, val}) -- create the edge
+                end
+                -- still insert the normal down value
+                table.insert(edge_list[y_val], {y_val, val, down_value})
+               
+            elseif(up_value == nil and down_value == nil) then
+                -- this is a wall point with no up or down - a corner on a border or a random corner anomaly in a wall
+                -- this point will always be skipped and included in the previous polygon
+                if(index-1 > 1) then
+                    edge_list[y_val][index-1] = {y_val ,  edge_list[y_val][index-1][2], val} -- the downpoint being used should never be lower than this point!
+                end
+                if(index == 1) then
+                    replacement_up = val
+                end
 
-                    indexA = index + 1
-                    -- if our index is out of range of our last_y_val_list
-                    if(indexA > #last_y_val_list[2] - 1) then
-                        indexA = #last_y_val_list - 1 -- we keep it in range
-                    end
-                    -- indexA is not the same as our index we can create the polygon, otherwise this point is useless
-                    if(indexA ~= index) then
-                        print("creating a normal polygon")
-                        polygon = {
-                            {last_y_val_list[1], last_y_val_list[2][index]}, -- top left 
-                            {last_y_val_list[1], last_y_val_list[2][indexA]}, -- bottom left
-                            -- We use the points we just defined
-                            {y_val, val}, -- a point on the right - this just indicates the corner point we are using
-                            extension_point, -- a point on the right
-                        }
-                        print(polygon)
-                        -- Here we just insert our extension point and the val
-                        table.insert(x_val_new, extension_point[1])
-                        table.insert(x_val_new, val)
-
-                        table.insert(polygon_list, polygon) 
-                    end
+            elseif(up_value == nil and down_value ~= nil) then
+                -- this edge was made moving down
+                table.insert(edge_list[y_val], {y_val, val, down_value})
+            else
+                -- this edge was made moving up
+                if(replacement_up == 0) then 
+                    table.insert(edge_list[y_val], {y_val, up_value, val})
+                else
+                    table.insert(edge_list[y_val], {y_val, replacement_up, val})
                 end
             end
-
-            table.sort(x_val_new)
-            last_y_val_list = {y_val, x_val_new}
-        end
-
-        if(#x_val_new == 0) then 
-            last_y_val_list = {y_val, x_val}
         end
     end
 
-    print(polygon_list)
-    return polygon_list
+    -- now move through the edge list-- connect edges with eachother by extending along the x axis to produce polygons
+    previous_edges = remove_duplicates(table.remove(edge_list, 1))
+    table.sort(edge_list)
+    print(edge_list)
+    polygons = {}
+    for y_val, edges in next, edge_list do
+        edges = remove_duplicates(edges)
+        print(y_val)
+        -- more than one edge
+    end
+
+    return edge_list
     
 end
+
+function edge_to_connect(list_of_edges, connecting_edge)
+    -- identify the best edge to connect the connecting_edge with
+
+    -- cycle through the list of edges we currently have
+    for past_edge in next, list_of_edges do
+        -- check to see if these edges CAN connect
+        if(_can_connect({past_edge[2], past_edge[3]}, {connecting_edge[2], connecting_edge[3]})) then
+
+        end
+    end
+
+end
+
+function _can_connect(boundA, boundB)
+    
+
+    return true
+end
+
+function tableConcat(t1,t2)
+    for i=1,#t2 do
+        t1[#t1+1] = t2[i]
+    end
+    return t1
+end
+
+function remove_duplicates(this_list)
+    hash = {}
+    res = {}
+    for _,v in ipairs(this_list) do
+        if (not hash[v[1] .. "_" .. v[2] .. "_" .. v[3]]) then
+            res[#res+1] = v
+            hash[v[1] .. "_" .. v[2] .. "_" .. v[3]] = true
+        end
+    end
+    return res
+end
+
+
+function _extend_up_down(point)
+    up_value = nil
+    down_value = nil
+
+    move_down = true
+    move_up = true
+    for extension = 1, MAP_DIMENSIONS[2]*PRECISION do
+        -- extend up -> determine if we have space to extend upwards
+        if((point[2] - extension) >= 1 and move_up) then
+            if(MAP[point[1]][point[2] - extension] == ".") then up_value = (point[2] - extension)
+            elseif(MAP[point[1]][point[2] - extension] == 1) then move_up = false end
+        else 
+            move_up = false
+        end
+
+        -- extend down -> determine if we have space to extend downwards
+        if(((point[2] + extension) <= MAP_DIMENSIONS[2]*PRECISION) and move_down) then
+            -- A free space was encountered so we set the down value we encountered
+            if(MAP[point[1]][point[2] + extension] == ".") then down_value = (point[2] + extension)
+            elseif(MAP[point[1]][point[2] + extension] == 1) then move_down = false end
+        else
+            move_down = false
+        end
+    
+    end
+
+    return up_value, down_value
+end
+
 
 
 function PathFinding:applyKernel(kernel, coordinate, matrix, element) return _applyKernel(kernel, coordinate, matrix, element) end
