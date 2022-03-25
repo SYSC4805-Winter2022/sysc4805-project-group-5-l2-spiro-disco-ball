@@ -65,7 +65,7 @@ end
 
 -- This creates the cells that can have the Boustrophedon paths applied to them - should return lists of the coordinates of corners ofshapes
 function PathFinding:CellDecomposition()
-    window = {3,3}
+    window = {4,4}
     print("Identifying area checked")
     -- start by redefining areas that are covered 
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
@@ -94,16 +94,29 @@ function PathFinding:CellDecomposition()
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
     points_of_interest = harris(gradient, 15000, 0.06) 
-    cluster_locations = DBSCAN(points_of_interest, 3, 3)
-
+    cluster_list, cluster_locations = DBSCAN(points_of_interest, 3, 3, true)
     for cluster = 1, #cluster_locations do
         MAP[math.floor(cluster_locations[cluster][1])][math.floor(cluster_locations[cluster][2])] = "$"
     end
-    print(cluster_locations)
-    --Now we've succesfully defined the locations of all corners currently known to the robot
-    cell_geometry = create_cells(cluster_locations)
 
+    --Now we've succesfully defined the locations of all corners currently known to the robot
+    create_cells(cluster_locations)
+    
+    -- Collect the empty untravelled space
+    white_space = {}
+    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
+        for j = 1, MAP_DIMENSIONS[2]*PRECISION do
+            if(MAP[i][j] == ".") then
+                table.insert(white_space, {i, j})
+            end
+        end
+    end
+    print("here")
+    print(white_space)
+    cell_point_list, centroids = DBSCAN(white_space, 2, 6, false)
+    print("am I done?")
 end
+
 
 function create_cells(set_of_points)
     -- First -- Sort the set of points by their y values - we want to move across the map along this direction
@@ -139,97 +152,10 @@ function create_cells(set_of_points)
         -- cycle through our points and create a list of edges
         for index, val in next, x_val do
             -- Extend the point up and down (along x)
-            up_value, down_value = _extend_up_down({y_val, val})
-
-            if(up_value ~= nil and down_value ~= nil) then
-                -- point is directly on an edge but can extend up and down in both directions into freespace
-                -- the edge we create is the combination of up and down value but we still need to create two seperate edges
-                if(replacement_up == 0) then 
-                    table.insert(edge_list[y_val], {y_val, up_value, val}) -- create the edge ex... { 1 : {1, 120}} is a vertical line from top to bottom
-                else
-                    -- we have a replacement up point indicated here so our up value becomes the new replacement up value
-                    table.insert(edge_list[y_val], {y_val, replacement_up, val}) -- create the edge
-                end
-                -- still insert the normal down value
-                table.insert(edge_list[y_val], {y_val, val, down_value})
-               
-            elseif(up_value == nil and down_value == nil) then
-                -- this is a wall point with no up or down - a corner on a border or a random corner anomaly in a wall
-                -- this point will always be skipped and included in the previous polygon
-                if(index-1 > 1) then
-                    edge_list[y_val][index-1] = {y_val ,  edge_list[y_val][index-1][2], val} -- the downpoint being used should never be lower than this point!
-                end
-                if(index == 1) then
-                    replacement_up = val
-                end
-
-            elseif(up_value == nil and down_value ~= nil) then
-                -- this edge was made moving down
-                table.insert(edge_list[y_val], {y_val, val, down_value})
-            else
-                -- this edge was made moving up
-                if(replacement_up == 0) then 
-                    table.insert(edge_list[y_val], {y_val, up_value, val})
-                else
-                    table.insert(edge_list[y_val], {y_val, replacement_up, val})
-                end
-            end
+            _extend_up_down({y_val, val})
         end
     end
-
-    -- now move through the edge list-- connect edges with eachother by extending along the x axis to produce polygons
-    previous_edges = remove_duplicates(table.remove(edge_list, 1))
-    table.sort(edge_list)
-    print(edge_list)
-    polygons = {}
-    for y_val, edges in next, edge_list do
-        edges = remove_duplicates(edges)
-        print(y_val)
-        -- more than one edge
-    end
-
-    return edge_list
-    
 end
-
-function edge_to_connect(list_of_edges, connecting_edge)
-    -- identify the best edge to connect the connecting_edge with
-
-    -- cycle through the list of edges we currently have
-    for past_edge in next, list_of_edges do
-        -- check to see if these edges CAN connect
-        if(_can_connect({past_edge[2], past_edge[3]}, {connecting_edge[2], connecting_edge[3]})) then
-
-        end
-    end
-
-end
-
-function _can_connect(boundA, boundB)
-    
-
-    return true
-end
-
-function tableConcat(t1,t2)
-    for i=1,#t2 do
-        t1[#t1+1] = t2[i]
-    end
-    return t1
-end
-
-function remove_duplicates(this_list)
-    hash = {}
-    res = {}
-    for _,v in ipairs(this_list) do
-        if (not hash[v[1] .. "_" .. v[2] .. "_" .. v[3]]) then
-            res[#res+1] = v
-            hash[v[1] .. "_" .. v[2] .. "_" .. v[3]] = true
-        end
-    end
-    return res
-end
-
 
 function _extend_up_down(point)
     up_value = nil
@@ -240,8 +166,18 @@ function _extend_up_down(point)
     for extension = 1, MAP_DIMENSIONS[2]*PRECISION do
         -- extend up -> determine if we have space to extend upwards
         if((point[2] - extension) >= 1 and move_up) then
-            if(MAP[point[1]][point[2] - extension] == ".") then up_value = (point[2] - extension)
-            elseif(MAP[point[1]][point[2] - extension] == 1) then move_up = false end
+            if(MAP[point[1]][point[2] - extension] == '.' or MAP[point[1]][point[2] - extension] == '*' or MAP[point[1]][point[2] - extension] == '@') then 
+                up_value = (point[2] - extension)
+                MAP[point[1]][point[2] - extension] = "O"
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
+                    MAP[point[1] + 1][point[2] - extension] = "O"
+                end
+                if(point[1] - 1 > 0) then
+                    MAP[point[1] - 1][point[2] - extension] = "O"
+                end
+            elseif(MAP[point[1]][point[2] - extension] == 1) then 
+                move_up = false 
+            end
         else 
             move_up = false
         end
@@ -249,14 +185,22 @@ function _extend_up_down(point)
         -- extend down -> determine if we have space to extend downwards
         if(((point[2] + extension) <= MAP_DIMENSIONS[2]*PRECISION) and move_down) then
             -- A free space was encountered so we set the down value we encountered
-            if(MAP[point[1]][point[2] + extension] == ".") then down_value = (point[2] + extension)
-            elseif(MAP[point[1]][point[2] + extension] == 1) then move_down = false end
+            if(MAP[point[1]][point[2] + extension] == '.' or MAP[point[1]][point[2] + extension] == '*' or MAP[point[1]][point[2] + extension] == '@') then 
+                down_value = (point[2] + extension)
+                MAP[point[1]][point[2] + extension] = "O"
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
+                    MAP[point[1] + 1][point[2] + extension] = "O"
+                end
+                if(point[1] - 1 > 0) then
+                    MAP[point[1] - 1][point[2] + extension] = "O"
+                end
+            elseif(MAP[point[1]][point[2] + extension] == 1) then
+                move_down = false 
+            end
         else
             move_down = false
         end
-    
     end
-
     return up_value, down_value
 end
 
@@ -280,7 +224,7 @@ function _applyKernel(kernel, coordinate, matrix, element)
     return sum
 end
 
-function DBSCAN(corner_list, epsilon, minPts)
+function DBSCAN(corner_list, epsilon, minPts, euclidian)
     C = 0   
     cluster_list = {}
     centroid = {}
@@ -308,8 +252,11 @@ function DBSCAN(corner_list, epsilon, minPts)
                         centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
                         centroid[C][3] = centroid[C][3] + 1
                         
-                        new_neighbors = neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
-
+                        if(euclidian = true) then
+                            new_neighbors = euclidian_neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+                        else 
+                            new_neighbors = empty_space_neighbors(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+                        end
                         if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
                             -- Add to our list
                             for add_neighbor = 1, #new_neighbors do
@@ -322,11 +269,43 @@ function DBSCAN(corner_list, epsilon, minPts)
         end
     end
     print("DBSCAN COMPLETE")
-    return centroid
+    return cluster_list, centroid
 end
+
+function empty_space_neighbors(corner_list, ignore_index, point)
+    dist_list = {}
+
+    if(#corner_list < 1) then
+        return {-1}
+    end
+
+    neighbor_count = 0
+    -- here we are always looking for points right beside, above and below
+    neighbor_list = {}
+    if(point[1] - 1 > 0) then 
+        if(MAP[point[1] - 1][point[2]] == ".") then
+            table.insert(neighbor_list, {point[1] - 1, point[2]})
+        end
+
+        if(point[2] - 1 > 0) then
+
+        end
+    end
+
+    if(point[1] + 1 < MAP_DIMENSIONS[1]*PRECISION) then
+        if(MAP[point[1] + 1][point[2]] == ".") then
+            table.insert(neighbor_list, {point[1] + 1, point[2]})
+        end
+
+
+    end
+    return neighbor_list
+end
+
 
 function neighbors_distance(corner_list, ignore_index, point, epsilon)
     dist_list = {}
+
     if(#corner_list < 1) then
         return {-1}
     end
@@ -342,7 +321,7 @@ function neighbors_distance(corner_list, ignore_index, point, epsilon)
             end
         end
     end
-
+    print("this?w")
     return dist_list
 end
 
