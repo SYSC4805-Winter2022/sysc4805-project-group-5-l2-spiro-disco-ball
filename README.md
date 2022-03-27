@@ -29,10 +29,15 @@ Research Morphology | David Casciano  | Aedyn Ladd
 Implement Morphology | David Casciano | Aedyn Ladd
 Researched Sensing | David Casciano | N/A
 Created robot model | Aedyn Ladd | N/A
-Added sensors and motors to model | Aedynn Ladd | N/A
+Added sensors and motors to model | Aedyn Ladd | N/A
 Progress Report and Proposal Contributions | Aedyn Ladd | N/A
-Implemented Sensing | Daniel Tura | N/A
+Implemented Sensing | Aedyn Ladd | N/A
 Researched Motors | Tadhg McDonald-Jensen | N/A
+Project Presentation | Aedyn Ladd | N/A
+Implementation of GoTo function | Aedyn Ladd | Tadgh McDonald-Jensen
+Tomography Based Environmental Mapping | Aedyn Ladd | N/A
+Corner Detection and Map Awareness | Aedyn Ladd | N/A
+
 
 ### **Reporting**
 To access reports such as:
