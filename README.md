@@ -37,7 +37,7 @@ Project Presentation | Aedyn Ladd | N/A
 Implementation of GoTo function | Aedyn Ladd | Tadgh McDonald-Jensen
 Tomography Based Environmental Mapping | Aedyn Ladd | N/A
 Corner Detection and Map Awareness | Aedyn Ladd | N/A
-
+Cellular Decomposition | Aedyn Ladd and David Casciano | N/A
 
 ### **Reporting**
 To access reports such as:
