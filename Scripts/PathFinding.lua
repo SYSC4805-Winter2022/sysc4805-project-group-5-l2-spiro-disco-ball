@@ -71,17 +71,17 @@ function PathFinding:CellDecomposition()
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
         for j = 1, MAP_DIMENSIONS[2]*PRECISION do
             -- reset previous cell decompostion spaces
-            if(MAP[j][i] == "O") then
-                MAP[j][i] = "."
+            if(MAP[i][j] == "O") then
+                MAP[i][j] = "."
             end
 
-            if(MAP[j][i] == "@") then 
+            if(MAP[i][j] == "@") then 
                 -- Change all pixels in this windows if they are empty spaces - DON'T CHANGE ANYTHING ELSE
                 for k_i = -1*math.floor((window[1]/2)), window[1], 1 do
                     for k_j = -1*math.floor((window[1]/2)), window[2], 1 do
                         if(((j + k_j) > 1) and ((i + k_i) > 1)) then
-                            if(MAP[j + k_j][i + k_i] == ".") then
-                                MAP[j + k_j][i + k_i] = "*"
+                            if(MAP[i + k_i][j + k_j] == ".") then
+                                MAP[i + k_i][j + k_j] = "*"
                             end
                         end
                     end
@@ -93,12 +93,12 @@ function PathFinding:CellDecomposition()
     
     -- Find the gradient
     print("Creating Gradient Matrix ... ")
-    gradient = gradient(MAP) 
+    Map_gradient = gradient(MAP) 
     print("Gradient has been determined")
 
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
-    points_of_interest = harris(gradient, 15000, 0.06) 
+    points_of_interest = harris(Map_gradient, 15000, 0.04) 
     cluster_list, cluster_locations = corner_detector(points_of_interest, 3, 3, true)
 
     for cluster = 1, #cluster_locations do
@@ -162,22 +162,21 @@ function _extend_up_down(point)
     for extension = 1, MAP_DIMENSIONS[2]*PRECISION do
         -- extend up -> determine if we have space to extend upwards
         if((point[2] - extension) >= 1 and move_up) then
-            if(MAP[point[1]][point[2] - extension] == '.' or MAP[point[1]][point[2] - extension] == '*' or MAP[point[1]][point[2] - extension] == '@') then 
+
+            if(MAP[point[1]][point[2] - extension] == 1) then
+                move_up = false 
+            else 
                 up_value = (point[2] - extension)
 
-                if(MAP[point[1]][point[2] - extension] == ".") then
-                    MAP[point[1]][point[2] - extension] = "O"
+                MAP[point[1]][point[2] - extension] = "O"
+
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
+                    MAP[point[1] + 1][point[2] - extension] = "O"
                 end
 
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION and MAP[point[1] + 1][point[2] - extension] == ".") then
-                    MAP[point[1] + 1][point[2] + extension] = "O"
+                if(point[1] - 1 > 0) then
+                    MAP[point[1] - 1][point[2] - extension] = "O"
                 end
-                if(point[1] - 1 > 0 and MAP[point[1] - 1][point[2] - extension] == ".") then
-                    MAP[point[1] - 1][point[2] + extension] = "O"
-                end
-
-            elseif(MAP[point[1]][point[2] - extension] == 1) then 
-                move_up = false 
             end
         else 
             move_up = false
@@ -186,22 +185,19 @@ function _extend_up_down(point)
         -- extend down -> determine if we have space to extend downwards
         if(((point[2] + extension) <= MAP_DIMENSIONS[2]*PRECISION) and move_down) then
             -- A free space was encountered so we set the down value we encountered
-            if(MAP[point[1]][point[2] + extension] == '.' or MAP[point[1]][point[2] + extension] == '*' or MAP[point[1]][point[2] + extension] == '@') then 
+            if(MAP[point[1]][point[2] + extension] == 1) then
+                move_down = false 
+            else 
                 down_value = (point[2] + extension)
 
-                if(MAP[point[1]][point[2] + extension] == ".") then 
-                    MAP[point[1]][point[2] + extension] = "O"
-                end
+                MAP[point[1]][point[2] + extension] = "O"
 
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION and MAP[point[1] + 1][point[2] + extension] == ".") then
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION ) then
                     MAP[point[1] + 1][point[2] + extension] = "O"
                 end
-                if(point[1] - 1 > 0 and MAP[point[1] - 1][point[2] + extension] == ".") then
+                if(point[1] - 1 > 0) then
                     MAP[point[1] - 1][point[2] + extension] = "O"
                 end
-
-            elseif(MAP[point[1]][point[2] + extension] == 1) then
-                move_down = false 
             end
         else
             move_down = false
@@ -219,7 +215,7 @@ function _applyKernel(kernel, coordinate, matrix, element)
     sum = 0
     for i = -1*kernel_len, kernel_len, 1 do
         for j = -1*kernel_len, kernel_len, 1 do
-            if((i + coordinate[1]) >= 1 and (j + coordinate[2]) >= 1 and (i + coordinate[1]) <= 120 and (j + coordinate[2]) <= 120) then
+            if((i + coordinate[1]) >= 1 and (j + coordinate[2]) >= 1 and (i + coordinate[1]) <= MAP_DIMENSIONS[1]*PRECISION and (j + coordinate[2]) <= MAP_DIMENSIONS[1]*PRECISION) then
                 if(matrix[i + coordinate[1]][j + coordinate[2]] == element) then
                     -- Then we can actually perform the operation for this element
                     sum = sum + (matrix[i + coordinate[1]][j + coordinate[2]] * kernel[i + (kernel_len + 1)][j + (kernel_len + 1)])
@@ -425,7 +421,7 @@ end
 --
 -- CORNER DETECTING ALGORITHMS
 --
-function harris(gradient, threshold, k)
+function harris(Map_gradient, threshold, k)
     --[[
         Perform Harris Edge detection on this matrix
     ]]
@@ -443,11 +439,11 @@ function harris(gradient, threshold, k)
             -- Applying the two sobel operators to our map - this is used for edge detection, and with the harison algorithm - corner detection
             for k_i = -1*kernel_len, kernel_len, 1 do
                 for k_j = -1*kernel_len, kernel_len, 1 do
-                    if((k_i + i) >= 1 and (k_j + j) >= 1 and (k_i + i) <= 120 and (k_j + j) <= 120) then
+                    if((k_i + i) >= 1 and (k_j + j) >= 1 and (k_i + i) <= MAP_DIMENSIONS[2]*PRECISION and (k_j + j) <= MAP_DIMENSIONS[2]*PRECISION) then
                         -- Then we can actually perform the operation for these element
-                        Sxx = Sxx + (gradient[k_i + i][k_j + j][1] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
-                        Sxy = Sxy + (gradient[k_i + i][k_j + j][2] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
-                        Syy = Syy + (gradient[k_i + i][k_j + j][3] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
+                        Sxx = Sxx + (Map_gradient[k_i + i][k_j + j][1] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
+                        Sxy = Sxy + (Map_gradient[k_i + i][k_j + j][2] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
+                        Syy = Syy + (Map_gradient[k_i + i][k_j + j][3] * kernel[k_i + (kernel_len + 1)][k_j + (kernel_len + 1)])
                     end
                 end
             end
@@ -459,7 +455,8 @@ function harris(gradient, threshold, k)
             -- 0.04 - 0.06 are acceptable constants for the Harris equation
             r = det - k*(trace^2)
 
-            if(r > threshold) then
+            eoi = MAP[i][j]
+            if(r > threshold and (eoi == 1 or eoi == "?" or eoi == "$")) then
                 corners[corner_index] = {i, j}
                 corner_index = corner_index + 1
                 MAP[i][j] = "?"
@@ -493,7 +490,7 @@ end
 
 -- using DDA function set to line of sight finding for future use
 function PathFinding:line_of_sight(start_loc, end_loc)
-    return DDA(start_loc, end_loc, false)
+    return DDA(start_loc, end_loc, true)
 end
 
 -- using the DDA algorithm we can establish a line of elements that can be used to create paths and check lines of sight
@@ -525,12 +522,20 @@ function DDA(start_loc, end_loc, LOS)
         px = (px+dx)
         py = (py+dy)
         i = i+1
+        eoi = MAP[math.floor(py + 0.5)][math.floor(px + 0.5)]
         if(LOS) then 
-            if(MAP[math.floor(py + 0.5)][math.floor(px + 0.5)] == 1) then
+            if(eoi == 1 or eoi == "?" or eoi == "$") then
                 return -1 -- LOS is broken - re-evalute cells
             end
         else
-            table.insert(line, {px,py})
+            if(eoi == 1 or eoi == "?" or eoi == "$") then
+                for remove_elem = 0, 5 do
+                    table.remove(line, #line)
+                end
+                return line -- LOS is broken - re-evalute cells
+            else 
+                table.insert(line, {py,px})
+            end
         end
     end
 

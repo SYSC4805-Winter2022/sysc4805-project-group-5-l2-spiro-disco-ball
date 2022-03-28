@@ -54,6 +54,7 @@ function MotorControl:rotate(rad_per_s, center)
     sim.setJointTargetVelocity(self.left, vel_l)
     sim.setJointTargetVelocity(self.right, vel_r)
 end
+
 --- returns the position of the main robot body relative to the lilypad
 --- in the units of map cells, if true is passed as argument it is rounded to the nearest integer cell
 ---@param round_to_nearest_integer_cell? boolean @true to round to integer
@@ -76,11 +77,13 @@ function MotorControl:getGridPosition(round_to_nearest_integer_cell)
         return loc_cell_units
     end
 end
+
 ---returns native coppelia sim coordinates for robot.
 ---@return {[1]:number, [2]:number}
 function MotorControl:getNativePosition()
     return sim.getObjectPosition(self.main_body, -1)
 end
+
 --- gets the current rotation wrt the lilypad in radians, set so that 0 is returned when the robot is facing positive x direction
 --- there is no guarentee on what range the angle will be in since adjustments may be needed from initial reading and there is
 --- very little benefit from fixing to a particular range.
