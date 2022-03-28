@@ -81,6 +81,7 @@ function sysCall_init()
     proximity_sensor[1] = sim.getObjectHandle("left_eye_sensor")
     proximity_sensor[2] = sim.getObjectHandle("right_eye_sensor")
 
+    JIC_sensor = sim.getObjectHandle("justInCase")
     --[[
         Initialize our 'lilypad' - a home beacon used to orient the robot around its body, and the map
     --]]
@@ -92,7 +93,7 @@ function sysCall_init()
     
     -- Create the initial 1 cell path
     cell_decomp = pathFinder:CellDecomposition()
-    
+    print(cell_decomp[1][1])
     path = pathFinder:Boustrophedon(cell_decomp[1][1])
 
     print("Starting simulation")
@@ -123,8 +124,13 @@ function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
-    x = goTo(path[1])
+    if(#path > 0) then
+        x = goTo(path[1])
+    else
+        x = -1
+    end
     
+
     if x == 1 then
         
         table.remove(path, 1)
@@ -137,6 +143,7 @@ function sysCall_actuation()
         end
 
     elseif x == -1 then
+        cleanMap()
         cell_decomp = pathFinder:CellDecomposition()
         path = identify_appropriate_pathing(cell_decomp)
         
@@ -147,31 +154,38 @@ function sysCall_actuation()
 
 end
 
-function identify_appropriate_path(cell_list)
+function identify_appropriate_pathing(cell_list)
     -- find the nearest cell that is available for us to plow
-
+    motor:move(0) -- freeze the robot
     closest_index = 1
 
     current_robot_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
     current_robot_location = {math.floor(((location[1] + 6)*PRECISION) + 0.5),  math.floor((location[2] * PRECISION) + 0.5)}
 
-    current_best_distance = math.sqrt((cell_list[closest_index][1] - current_robot_location[1])**2 + (cell_list[closest_index][2] - current_robot_location[2])**2)
+    current_best_distance = math.sqrt((cell_list[closest_index][1][2][1] - current_robot_location[1])^2 + (cell_list[closest_index][1][2][2] - current_robot_location[2])^2)
 
+    edge_index = 1
     for i = 1, #cell_list do
-        -- find the nearest point
-
-        element_being_checked = cell_list[i][2]
-        element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])**2 + (element_being_checked[2] - current_robot_location[2])**2)
-
-        if element_distance < current_best_distance then
-            current_best_distance = element_distance
-            closest_index = i
+        -- find the nearest point either left or right edge
+        for i=1, 2 do
+            element_being_checked = cell_list[i][2][i]
+            element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])^2 + (element_being_checked[2] - current_robot_location[2])^2)
+            
+            if element_distance < current_best_distance then
+                if(pathFinder:line_of_sight(current_robot_location, element_being_checked)) then
+                    -- Check if we can actually reach this point
+                    current_best_distance = element_distance
+                    closest_index = i
+                    edge_index = i
+                end
+            end
         end
-        
     end
+
+    print(cell_list[closest_index])
     
-    pathing_element = {{cell_list[closest_index][2]}}
-    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1])
+    pathing_element = {{cell_list[closest_index][2][edge_index]}}
+    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1][1])
 
     -- concatenate the tables
     for bi=1, #boustrophedon_pathing_element[1][1] do 
@@ -203,6 +217,17 @@ end
 --- makes the robot move to a certain location on our grid
 ---@param destination {[1]:number, [2]:number} # set of grid coordinates describing current location in [x,y]
 function goTo(destination)
+    -- a sensor to check if we are about to collide with something
+    if(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) then
+        -- our jic sensor is triggered which is bad - object is infront of it that it doesnt know about
+        -- move backwards
+        while(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) do
+            motor:move(-1)
+        end
+        return 1 -- skip and move to next point
+    end
+
+
     local rel_movement = motor:getRelMotion(grid2NativeUnits(destination))
     -- local rel_movement = motor:getRelMotion({1, -5})
     -- print("REL", rel_movement)
@@ -260,6 +285,7 @@ function goTo(destination)
             motor:rotate(-math.pi/4)
         end
     end
+
     -- returns 0 if the line of sight is good, -1 if los is broken
     return pathFinder:line_of_sight(motor:getGridPosition(true), destination)
     -- return 0
@@ -398,14 +424,15 @@ end
 function cleanMap()
     dilated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
     erroted = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
-    kernel = {{1,1,1},{1,1,1},{1,1,1}}
+    kernel = {{1, 1, 1}, {1, 1, 1}, {1, 1, 1}}
+    --kernel = {{1, 1, 1, 1, 1},{1, 1, 1, 1, 1},{1, 1, 1, 1, 1},{1, 1, 1, 1, 1},{1, 1, 1, 1, 1}}
     --preform dialation for the map
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if applyDilation_Erosion_kernel(kernel, {i,j}, MAP, 1) > 0 then
-                dilated[j][i] = 1
+            if applyDilation_Erosion_kernel(kernel, {i,j}, MAP, "dilation") > 0 then
+                dilated[i][j] = 1
             else
-                dilated[j][i] = MAP[j][i]
+                dilated[i][j] = MAP[i][j]
             end
         end
     end
@@ -413,10 +440,15 @@ function cleanMap()
     --preform errosion
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if applyDilation_Erosion_kernel(kernel, {i,j}, dilated, 1) == 9 then
-                erroted[j][i] = "."
+            if applyDilation_Erosion_kernel(kernel, {i,j}, dilated, "erosion") == 8 then
+                eoi = MAP[i][j]
+                if(eoi == "@" or eoi == "*" or eoi == ".") then
+                    erroted[i][j] = eoi
+                else 
+                    erroted[i][j] = "."
+                end
             else
-                erroted[j][i]= dilated[j][i]
+                erroted[i][j]= dilated[i][j]
             end
         end
     end
@@ -424,15 +456,22 @@ function cleanMap()
 
 end
 
-function applyDilation_Erosion_kernel(kernel, coordinate, matrix, element)
+function applyDilation_Erosion_kernel(kernel, coordinate, matrix, operation)
     kernel_len = math.floor(#kernel[1]/2)
     sum = 0
     for i = -1*kernel_len, kernel_len, 1 do
         for j = -1*kernel_len, kernel_len, 1 do
-            if((i + coordinate[1]) >= 1 and (j + coordinate[2]) >= 1 and (i + coordinate[1]) <= 120 and (j + coordinate[2]) <= 120) then
-                if(matrix[i + coordinate[1]][j + coordinate[2]] == element) then
-                    -- Then we can actually perform the operation for this element
-                    sum = sum + (matrix[i + coordinate[1]][j + coordinate[2]] * kernel[i + (kernel_len + 1)][j + (kernel_len + 1)])
+            if((i + coordinate[1]) >= 1 and (j + coordinate[2]) >= 1 and (i + coordinate[1]) <= MAP_DIMENSIONS[1]*PRECISION and (j + coordinate[2]) <= MAP_DIMENSIONS[1]*PRECISION) then
+                eoi = matrix[i + coordinate[1]][j + coordinate[2]]
+                if(operation == "dilation") then
+                    if(eoi == 1 or eoi == "$" or eoi == "?") then
+                        -- Then we can actually perform the operation for this element
+                        sum = sum + 1
+                    end
+                elseif(operation == "erosion") then
+                    if(eoi == "." or eoi == "@" or eoi == "*") then
+                        sum = sum + 1
+                    end
                 end
             end
         end
