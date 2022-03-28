@@ -129,29 +129,29 @@ function sysCall_actuation()
     else
         x = -1
     end
-    
+
 
     if x == 1 then
-        
+        -- we've arrived at the point! Hurray!
         table.remove(path, 1)
-
+        -- remove the point we were looking at and move on to the next one
         if(#path == 0) then
             -- identify if we've finished this cell
             -- if we have finished this cell then identify the new cell
             path = identify_appropriate_pathing(cell_decomp)
 
         end
-
     elseif x == -1 then
         cleanMap()
         cell_decomp = pathFinder:CellDecomposition()
         path = identify_appropriate_pathing(cell_decomp)
         
         -- identify next pathing element from our list of all cells
-    else
-
+    elseif x == 2 then
+        table.remove(path, 1) -- remove the problem element that we werent able to go to
+        x = _reverse_() -- and reverse
+        -- then continue
     end
-
 end
 
 function identify_appropriate_pathing(cell_list)
@@ -166,32 +166,43 @@ function identify_appropriate_pathing(cell_list)
 
     edge_index = 1
     for i = 1, #cell_list do
-        -- find the nearest point either left or right edge
-        for i=1, 2 do
-            element_being_checked = cell_list[i][2][i]
-            element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])^2 + (element_being_checked[2] - current_robot_location[2])^2)
-            
-            if element_distance < current_best_distance then
-                if(pathFinder:line_of_sight(current_robot_location, element_being_checked)) then
-                    -- Check if we can actually reach this point
-                    current_best_distance = element_distance
-                    closest_index = i
-                    edge_index = i
+        -- is the area large enough to plow?
+        area_def= cell_list[i][1]
+
+        cell_area_A = area_def[1][1]*area_def[2][2] + area_def[2][1]*area_def[3][2] + area_def[3][1]*area_def[4][2] + area_def[4][1]*area_def[1][2]
+        cell_area_B = area_def[1][2]*area_def[2][1] + area_def[2][2]*area_def[3][1] + area_def[3][2]*area_def[4][1] + area_def[4][2]*area_def[1][1]
+        
+        cell_area = math.abs((cell_area_A - cell_area_B) / 2)
+        print("Cell area for cluster #" .. i .. " is " .. cell_area)
+        if(cell_area >= PRECISION^2) then
+            -- If the cell isn't worthwhile we wont plow it
+            -- find the nearest point either left or right edge
+            for i=1, 2 do
+                element_being_checked = cell_list[i][2][i]
+                element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])^2 + (element_being_checked[2] - current_robot_location[2])^2)
+                
+                if element_distance < current_best_distance then
+                    if(pathFinder:line_of_sight(current_robot_location, element_being_checked)) then
+                        -- Check if we can actually reach this point
+                        current_best_distance = element_distance
+                        closest_index = i
+                        edge_index = i
+                    end
                 end
             end
         end
     end
-
-    print(cell_list[closest_index])
     
     pathing_element = {{cell_list[closest_index][2][edge_index]}}
-    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1][1])
+    print(pathing_element)
+    print(cell_list[closest_index][1])
+    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index])
 
     -- concatenate the tables
     for bi=1, #boustrophedon_pathing_element[1][1] do 
+        
         pathing_element[#pathing_element + 1] = boustrophedon_pathing_element[bi] 
     end
-        
     -- remove this cell element from our cell_list
     return pathing_element
 end
@@ -214,17 +225,30 @@ function grid2NativeUnits(gridcoord)
     return {gridcoord[1]/PRECISION - 6, gridcoord[2]/PRECISION - 6}
 end
 
+-- reverse so the JIC sensor isn't touching anything
+function _reverse_()
+    print("reversing")
+    if(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) then
+        -- our jic sensor is triggered which is bad - object is infront of it that it doesnt know about
+        -- move backwards
+        sim.setJointTargetVelocity(wheel_left, -1)
+        sim.setJointTargetVelocity(wheel_right, -1)
+        return 2 -- skip and move to next point
+    end
+
+    motor:move(0)
+    
+    return 0
+end
+
+
+
 --- makes the robot move to a certain location on our grid
 ---@param destination {[1]:number, [2]:number} # set of grid coordinates describing current location in [x,y]
 function goTo(destination)
     -- a sensor to check if we are about to collide with something
     if(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) then
-        -- our jic sensor is triggered which is bad - object is infront of it that it doesnt know about
-        -- move backwards
-        while(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) do
-            motor:move(-1)
-        end
-        return 1 -- skip and move to next point
+        return 2 -- reverse
     end
 
 

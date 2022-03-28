@@ -98,7 +98,7 @@ function PathFinding:CellDecomposition()
 
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
-    points_of_interest = harris(Map_gradient, 15000, 0.04) 
+    points_of_interest = harris(Map_gradient, 15000, 0.06) 
     cluster_list, cluster_locations = corner_detector(points_of_interest, 3, 3, true)
 
     for cluster = 1, #cluster_locations do
