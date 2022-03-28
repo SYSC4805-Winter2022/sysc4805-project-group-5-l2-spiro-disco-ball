@@ -113,7 +113,8 @@ function PathFinding:CellDecomposition()
     end
     print("here")
     print(white_space)
-    cell_point_list, centroids = DBSCAN(white_space, 2, 6, false)
+    --cell_point_list, centroids = DBSCAN(white_space, 2, 6, false)
+    cell_point_list, centroids = segment(white_space, 2, 6)
     print("am I done?")
 end
 
@@ -252,8 +253,8 @@ function DBSCAN(corner_list, epsilon, minPts, euclidian)
                         centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
                         centroid[C][3] = centroid[C][3] + 1
                         
-                        if(euclidian = true) then
-                            new_neighbors = euclidian_neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+                        if(euclidian == true) then
+                            new_neighbors = neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
                         else 
                             new_neighbors = empty_space_neighbors(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
                         end
@@ -441,6 +442,91 @@ function DDA(start_loc, end_loc, LOS)
     end
 end
 
+function segment(empty_points, epsilon, minPts)
+    C = 0
+    cluster_list = {}
+    centroid = {}
+ 
+    for C1 = 1, #empty_points do
+     if cluster_list[C1] ~= nil or empty_points[C1] == nil then
+         -- this point was already processed or is weird
+     else
+         neighbours = white_space_neighbors_distance()
+         if #neighbors < minPts then
+             --label as noise
+             cluster_list[C1] = 0
+         else
+             C = C + 1
+             cluster_list[C1] = C1
+             centroid[C] = {empty_points[C1][1], empty_points[C1][2], 1}
+ 
+             while(neighbors[1] ~= nil) do
+                 this_neighbor = neighbors[1]
+                 table.remove(neighbors, 1)
+                 if cluster_list[this_neighbor] == nil then
+                     cluster_list[this_neighbor] = C1
+ 
+                     centroid[C][1] = (centroid[C][1]*centroid[C][3] + corner_list[this_neighbor][1]) / (centroid[C][3] + 1)
+                     centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
+                     centroid[C][3] = centroid[C][3] + 1
+                     
+                     new_neighbors = empty_space_neighbors(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+ 
+                     if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
+                         -- Add to our list
+                         for add_neighbor = 1, #new_neighbors do
+                             table.insert(neighbors, new_neighbors[add_neighbor])
+                         end
+                     end
+                 end
+             end
+         end
+     end
+ 
+     return cluster_list, centroid
+ end 
+ 
+    
+ end
+ 
+ function white_space_neighbors_distance(coordinate)
+     neighbors = {}
+ 
+     x_val = coordinate[2]
+     y_val = coordinate[1]
+ 
+     for i=x_val-1, x_val+1, 1 do
+         for j=y_val-1, y_val+1, 1 do
+             if (x_val < MAP_DIMENSIONS[2]*PRECISION) and (y_val < MAP_DIMENSIONS*PRECISION) then
+                if (i == x_val and j == y_val) then
+                    --skip as its not a neighbor
+                else
+                    if(_isEmpty(MAP[j][i])) then
+                        table.insert(neighbors, {j,i})
+                    end
+                end
+            end
+         end
+     end
+     return neighbors
+ end
+ 
+ --[[
+     Create a function which can check if a coordinate
+     is empty or not
+ ]]
+ function _isEmpty(val)
+     if(val == "?") then
+         return false
+     elseif (val == 1) then
+         return false
+     elseif (val == "$") then
+         return false
+     else
+         return true
+     end
+ end
+ 
 return PathFinding
 
 
