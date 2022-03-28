@@ -94,28 +94,17 @@ function PathFinding:CellDecomposition()
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
     points_of_interest = harris(gradient, 15000, 0.06) 
-    cluster_list, cluster_locations = DBSCAN(points_of_interest, 3, 3, true)
+    cluster_list, cluster_locations = corner_detector(points_of_interest, 3, 3, true)
+
     for cluster = 1, #cluster_locations do
         MAP[math.floor(cluster_locations[cluster][1])][math.floor(cluster_locations[cluster][2])] = "$"
     end
 
     --Now we've succesfully defined the locations of all corners currently known to the robot
     create_cells(cluster_locations)
-    
-    -- Collect the empty untravelled space
-    white_space = {}
-    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
-        for j = 1, MAP_DIMENSIONS[2]*PRECISION do
-            if(MAP[i][j] == ".") then
-                table.insert(white_space, {i, j})
-            end
-        end
-    end
-    print("here")
-    print(white_space)
-    --cell_point_list, centroids = DBSCAN(white_space, 2, 6, false)
-    cell_point_list, centroids = segment(white_space, 2, 6)
-    print("am I done?")
+
+    cell_clusters = segmentation()
+
 end
 
 
@@ -225,7 +214,10 @@ function _applyKernel(kernel, coordinate, matrix, element)
     return sum
 end
 
-function DBSCAN(corner_list, epsilon, minPts, euclidian)
+---
+--- DBSCAN ALGORITHMS
+---
+function corner_detector(corner_list, epsilon, minPts, euclidian)
     C = 0   
     cluster_list = {}
     centroid = {}
@@ -233,7 +225,7 @@ function DBSCAN(corner_list, epsilon, minPts, euclidian)
         if cluster_list[C1] ~= nil or corner_list[C1] == nil then
             -- this point was already processed or is weird - skip
         else 
-            neighbors = neighbors_distance(corner_list, C1, corner_list[C1], epsilon)
+            neighbors = euclidian_neighbors_distance(corner_list, C1, corner_list[C1], epsilon)
             if #neighbors < minPts then
                 -- label as noise
                 cluster_list[C1] = 0
@@ -253,11 +245,9 @@ function DBSCAN(corner_list, epsilon, minPts, euclidian)
                         centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
                         centroid[C][3] = centroid[C][3] + 1
                         
-                        if(euclidian == true) then
-                            new_neighbors = neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
-                        else 
-                            new_neighbors = empty_space_neighbors(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
-                        end
+                        new_neighbors = euclidian_neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+                        
+                        
                         if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
                             -- Add to our list
                             for add_neighbor = 1, #new_neighbors do
@@ -269,42 +259,89 @@ function DBSCAN(corner_list, epsilon, minPts, euclidian)
             end
         end
     end
-    print("DBSCAN COMPLETE")
     return cluster_list, centroid
 end
 
-function empty_space_neighbors(corner_list, ignore_index, point)
-    dist_list = {}
+-- Runs DBSCAN algorithm to perform segmentation on map
+function segmentation()
 
-    if(#corner_list < 1) then
-        return {-1}
-    end
-
-    neighbor_count = 0
-    -- here we are always looking for points right beside, above and below
-    neighbor_list = {}
-    if(point[1] - 1 > 0) then 
-        if(MAP[point[1] - 1][point[2]] == ".") then
-            table.insert(neighbor_list, {point[1] - 1, point[2]})
-        end
-
-        if(point[2] - 1 > 0) then
-
+    local segmentation_grid = {}
+    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
+        segmentation_grid[i] = {}
+        for j = 1, MAP_DIMENSIONS[1]*PRECISION do 
+            segmentation_grid[i][j] = -1 
         end
     end
 
-    if(point[1] + 1 < MAP_DIMENSIONS[1]*PRECISION) then
-        if(MAP[point[1] + 1][point[2]] == ".") then
-            table.insert(neighbor_list, {point[1] + 1, point[2]})
+    C = 0   
+    segmentation_list = {}
+    centroid = {}
+
+    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
+        for j = 1, MAP_DIMENSIONS[1]*PRECISION do
+            if segmentation_grid[i][j] ~= -1 then
+                -- this point was already processed or is weird - skip
+            else 
+                neighbors = adjacent_neighbors({i, j})
+                if #neighbors < 4 then
+                    -- label as noise
+                    segmentation_grid[i][j] = 0
+                else 
+                    C = C + 1
+                    print(C)
+                    segmentation_list[C] = {{i, j}}
+                    
+                    while(neighbors[1] ~= nil) do
+
+                        this_neighbor = neighbors[1] -- Save the point value
+                        table.remove(neighbors, 1) -- Remove this one from our list
+
+                        if segmentation_grid[this_neighbor[1]][this_neighbor[2]] == -1 then -- If this point is undefined
+                            
+                            segmentation_grid[this_neighbor[1]][this_neighbor[2]] = C -- define it as its part of our cluster
+                            
+                            table.insert(segmentation_list[C], {this_neighbor[1], this_neighbor[2]})
+                            
+                            new_neighbors = adjacent_neighbors({this_neighbor[1], this_neighbor[2]})
+                            
+                            if(#new_neighbors >= 4) then -- this IS a core point which means we add its neighbors to our list
+                                -- Add to our list
+                                for add_neighbor = 1, #new_neighbors do table.insert(neighbors, new_neighbors[add_neighbor]) end
+                            end 
+                        end
+                    end
+                end
+            end
         end
-
-
     end
-    return neighbor_list
 end
 
 
-function neighbors_distance(corner_list, ignore_index, point, epsilon)
+---
+--- DISTANCE MEASURING HEURISTICS
+---
+
+--- Adjacent Neighbors distance
+function adjacent_neighbors(point)
+    adjacent_neighbors_list = {}
+    for i = -1, 1 do
+        for j = -1, 1 do
+            if((point[1] + i) >= 1 and (point[1] + i) <= MAP_DIMENSIONS[2]*PRECISION and (point[2] + j) >= 1 and (point[2] + j) <= MAP_DIMENSIONS[2]*PRECISION) then
+                poi = MAP[point[1] + i][point[2] + j]
+                if(poi == "." or poi == "@" or poi == "*") then
+                    if(i ~= 0 and j ~= 0) then
+                        table.insert(adjacent_neighbors_list, {point[1] + i, point[2] + j})
+                    end
+                end
+            end
+        end
+    end
+
+    return adjacent_neighbors_list
+end
+
+--- Euclidian Neighbors distance
+function euclidian_neighbors_distance(corner_list, ignore_index, point, epsilon)
     dist_list = {}
 
     if(#corner_list < 1) then
@@ -322,10 +359,13 @@ function neighbors_distance(corner_list, ignore_index, point, epsilon)
             end
         end
     end
-    print("this?w")
     return dist_list
 end
 
+
+--
+-- CORNER DETECTING ALGORITHMS
+--
 function harris(gradient, threshold, k)
     --[[
         Perform Harris Edge detection on this matrix
@@ -442,91 +482,6 @@ function DDA(start_loc, end_loc, LOS)
     end
 end
 
-function segment(empty_points, epsilon, minPts)
-    C = 0
-    cluster_list = {}
-    centroid = {}
- 
-    for C1 = 1, #empty_points do
-     if cluster_list[C1] ~= nil or empty_points[C1] == nil then
-         -- this point was already processed or is weird
-     else
-         neighbours = white_space_neighbors_distance(empty_points[C1])
-         if #neighbors < minPts then
-             --label as noise
-             cluster_list[C1] = 0
-         else
-             C = C + 1
-             cluster_list[C1] = C1
-             centroid[C] = {empty_points[C1][1], empty_points[C1][2], 1}
- 
-             while(neighbors[1] ~= nil) do
-                 this_neighbor = neighbors[1]
-                 table.remove(neighbors, 1)
-                 if cluster_list[this_neighbor] == nil then
-                     cluster_list[this_neighbor] = C1
- 
-                     centroid[C][1] = (centroid[C][1]*centroid[C][3] + corner_list[this_neighbor][1]) / (centroid[C][3] + 1)
-                     centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
-                     centroid[C][3] = centroid[C][3] + 1
-                     
-                     new_neighbors = white_space_neighbors_distance(this_neighbor)
- 
-                     if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
-                         -- Add to our list
-                         for add_neighbor = 1, #new_neighbors do
-                             table.insert(neighbors, new_neighbors[add_neighbor])
-                         end
-                     end
-                 end
-             end
-         end
-     end
- 
-     return cluster_list, centroid
- end 
- 
-    
- end
- 
- function white_space_neighbors_distance(coordinate)
-     neighbors = {}
- 
-     x_val = coordinate[2]
-     y_val = coordinate[1]
- 
-     for i=x_val-1, x_val+1, 1 do
-         for j=y_val-1, y_val+1, 1 do
-             if (x_val < MAP_DIMENSIONS[2]*PRECISION) and (y_val < MAP_DIMENSIONS*PRECISION) then
-                if (i == x_val and j == y_val) then
-                    --skip as its not a neighbor
-                else
-                    if(_isEmpty(MAP[j][i])) then
-                        table.insert(neighbors, {j,i})
-                    end
-                end
-            end
-         end
-     end
-     return neighbors
- end
- 
- --[[
-     Create a function which can check if a coordinate
-     is empty or not
- ]]
- function _isEmpty(val)
-     if(val == "?") then
-         return false
-     elseif (val == 1) then
-         return false
-     elseif (val == "$") then
-         return false
-     else
-         return true
-     end
- end
- 
 return PathFinding
 
 

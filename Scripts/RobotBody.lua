@@ -89,7 +89,7 @@ function sysCall_init()
     pathFinder = PathFinding:new()
 
     MAP = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION) -- Our map is 12x12M each M^2 is divided into PRECISION # of slices
-
+    
     -- Create the initial 1 cell path
     path = pathFinder:Boustrophedon({{30, 5}, {90, 5}, {30, 60}, {90, 60}})
     path = {{30, 5}, {90, 5}, {30, 60}, {90, 60}}
