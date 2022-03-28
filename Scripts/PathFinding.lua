@@ -24,12 +24,10 @@ function PathFinding:Boustrophedon(cell_bounds)
     -- Create the Boustrophedon defined path based on current cell decomposition
     -- Use a line of sight to determine where our line will end if at all it does
     boustrophedon_path = {}
-    while(cell_bounds[1] ~= nil)
-    do
+    while(cell_bounds[1] ~= nil) do
         -- Start with one of the coords
         this_cell = table.remove(cell_bounds, 1)
-        for index, coordinate in ipairs(cell_bounds)
-        do
+        for index, coordinate in ipairs(cell_bounds) do
             -- for all remaining coords, find the path
             path = DDA(this_cell, coordinate, false)
             -- with the line of sight path, concatenate it with the boustrophedon path
@@ -51,7 +49,7 @@ function PathFinding:Boustrophedon(cell_bounds)
     max_min_cycle = 1
 
     for i=1, #boustrophedon_path do
-        if(boustrophedon_path[i] ~= nil and i%5 == 0) then
+        if(boustrophedon_path[i] ~= nil and i % 5 == 0) then
             --table.insert(final_boustrophedon_path, {boustrophedon_path[i][max_min_cycle], i})
             table.insert(final_boustrophedon_path, {boustrophedon_path[i][1], i})
             table.insert(final_boustrophedon_path, {boustrophedon_path[i][2], i})
@@ -169,14 +167,6 @@ function _extend_up_down(point)
                 up_value = (point[2] - extension)
 
                 MAP[point[1]][point[2] - extension] = "O"
-
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
-                    MAP[point[1] + 1][point[2] - extension] = "O"
-                end
-
-                if(point[1] - 1 > 0) then
-                    MAP[point[1] - 1][point[2] - extension] = "O"
-                end
             end
         else 
             move_up = false
@@ -191,13 +181,7 @@ function _extend_up_down(point)
                 down_value = (point[2] + extension)
 
                 MAP[point[1]][point[2] + extension] = "O"
-
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION ) then
-                    MAP[point[1] + 1][point[2] + extension] = "O"
-                end
-                if(point[1] - 1 > 0) then
-                    MAP[point[1] - 1][point[2] + extension] = "O"
-                end
+                
             end
         else
             move_down = false
@@ -258,7 +242,6 @@ function corner_detector(corner_list, epsilon, minPts, euclidian)
                         centroid[C][3] = centroid[C][3] + 1
                         
                         new_neighbors = euclidian_neighbors_distance(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
-                        
                         
                         if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
                             -- Add to our list

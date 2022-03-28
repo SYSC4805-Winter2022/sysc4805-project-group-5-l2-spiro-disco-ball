@@ -116,6 +116,7 @@ function create_map(N, M)
 end
 
 
+curr_state = 0
 --[[
     ACTUATION BODY FUNCTIONS
 ]]
@@ -123,16 +124,16 @@ function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
-    if(x ~= 2) then
+    if(curr_state ~= 2) then
         if(path[1] ~= nil) then
-            x = goTo(path[1])
+            curr_state = goTo(path[1])
         else
-            x = -1
+            curr_state = -1
         end
     end
 
 
-    if x == 1 then
+    if curr_state == 1 then
         -- we've arrived at the point! Hurray!
         table.remove(path, 1)
         -- remove the point we were looking at and move on to the next one
@@ -141,20 +142,20 @@ function sysCall_actuation()
             -- if we have finished this cell then identify the new cell
             path = identify_appropriate_pathing(cell_decomp)
         end
-    elseif x == -1 then
+    elseif curr_state == -1 then
         
         cleanMap()
         cell_decomp = pathFinder:CellDecomposition()
         path = identify_appropriate_pathing(cell_decomp)
         
         -- identify next pathing element from our list of all cells
-    elseif x == 2 then
-        x = _reverse_() -- and reverse
+    elseif curr_state == 2 then
+        curr_state = _reverse_() -- and reverse
 
         -- we've now reversed far enough that we are no longer in danger of collision
-        if(x == 0) then
-            print("reversed far enough - removing element and continuing")
+        if(curr_state == 0) then
             table.remove(path, 1) -- remove the problem element that we werent able to go to
+            curr_state = 0
         end
         -- then continue
     end
@@ -174,7 +175,6 @@ function identify_appropriate_pathing(cell_list)
     for i = 1, #cell_list do
         -- is the area large enough to plow?
         area_def= cell_list[i][1]
-
         cell_area_A = area_def[1][1]*area_def[2][2] + area_def[2][1]*area_def[3][2] + area_def[3][1]*area_def[4][2] + area_def[4][1]*area_def[1][2]
         cell_area_B = area_def[1][2]*area_def[2][1] + area_def[2][2]*area_def[3][1] + area_def[3][2]*area_def[4][1] + area_def[4][2]*area_def[1][1]
         
@@ -200,14 +200,17 @@ function identify_appropriate_pathing(cell_list)
     end
     
     pathing_element = {{cell_list[closest_index][2][edge_index]}}
+    -- find the boustrophedon
     boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1])
 
-    print(boustrophedon_pathing_element)
-    -- concatenate the tables
-    for bi=1, #boustrophedon_pathing_element[1] do 
-        
-        pathing_element[#pathing_element + 1] = boustrophedon_pathing_element[bi] 
+    -- sometimes it isnt large enough an area
+    if(#boustrophedon_pathing_element > 0) then
+        for bi=1, #boustrophedon_pathing_element[1] do pathing_element[#pathing_element + 1] = boustrophedon_pathing_element[bi] end
+    else
+        -- when area isn't large enough we compose it off just our path
+        for bi=1, #cell_list[closest_index][1] do pathing_element[#pathing_element + 1] = cell_list[closest_index][1][bi] end
     end
+    print(pathing_element)
     -- remove this cell element from our cell_list
     return pathing_element
 end
@@ -314,9 +317,7 @@ function goTo(destination)
         end
     end
 
-    -- returns 0 if the line of sight is good, -1 if los is broken
-    return pathFinder:line_of_sight(motor:getGridPosition(true), destination)
-    -- return 0
+    return 0
 end
 
 
