@@ -451,7 +451,7 @@ function segment(empty_points, epsilon, minPts)
      if cluster_list[C1] ~= nil or empty_points[C1] == nil then
          -- this point was already processed or is weird
      else
-         neighbours = white_space_neighbors_distance()
+         neighbours = white_space_neighbors_distance(empty_points[C1])
          if #neighbors < minPts then
              --label as noise
              cluster_list[C1] = 0
@@ -470,7 +470,7 @@ function segment(empty_points, epsilon, minPts)
                      centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
                      centroid[C][3] = centroid[C][3] + 1
                      
-                     new_neighbors = empty_space_neighbors(corner_list, this_neighbor, corner_list[this_neighbor], epsilon)
+                     new_neighbors = empty_space_neighbors(this_neighbor)
  
                      if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
                          -- Add to our list
