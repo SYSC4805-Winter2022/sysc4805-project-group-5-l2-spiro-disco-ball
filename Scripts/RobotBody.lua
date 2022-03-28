@@ -93,7 +93,6 @@ function sysCall_init()
     
     -- Create the initial 1 cell path
     cell_decomp = pathFinder:CellDecomposition()
-    print(cell_decomp[1][1])
     path = pathFinder:Boustrophedon(cell_decomp[1][1])
 
     print("Starting simulation")
@@ -124,10 +123,12 @@ function sysCall_actuation()
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
-    if(#path > 0) then
-        x = goTo(path[1])
-    else
-        x = -1
+    if(x ~= 2) then
+        if(path[1] ~= nil) then
+            x = goTo(path[1])
+        else
+            x = -1
+        end
     end
 
 
@@ -139,17 +140,22 @@ function sysCall_actuation()
             -- identify if we've finished this cell
             -- if we have finished this cell then identify the new cell
             path = identify_appropriate_pathing(cell_decomp)
-
         end
     elseif x == -1 then
+        
         cleanMap()
         cell_decomp = pathFinder:CellDecomposition()
         path = identify_appropriate_pathing(cell_decomp)
         
         -- identify next pathing element from our list of all cells
     elseif x == 2 then
-        table.remove(path, 1) -- remove the problem element that we werent able to go to
         x = _reverse_() -- and reverse
+
+        -- we've now reversed far enough that we are no longer in danger of collision
+        if(x == 0) then
+            print("reversed far enough - removing element and continuing")
+            table.remove(path, 1) -- remove the problem element that we werent able to go to
+        end
         -- then continue
     end
 end
@@ -194,12 +200,11 @@ function identify_appropriate_pathing(cell_list)
     end
     
     pathing_element = {{cell_list[closest_index][2][edge_index]}}
-    print(pathing_element)
-    print(cell_list[closest_index][1])
-    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index])
+    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1])
 
+    print(boustrophedon_pathing_element)
     -- concatenate the tables
-    for bi=1, #boustrophedon_pathing_element[1][1] do 
+    for bi=1, #boustrophedon_pathing_element[1] do 
         
         pathing_element[#pathing_element + 1] = boustrophedon_pathing_element[bi] 
     end
@@ -229,14 +234,14 @@ end
 function _reverse_()
     print("reversing")
     if(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) then
-        -- our jic sensor is triggered which is bad - object is infront of it that it doesnt know about
-        -- move backwards
+        -- our jic sensor is triggered which is bad - object is infront of it that it doesnt know about move backwards
         sim.setJointTargetVelocity(wheel_left, -1)
         sim.setJointTargetVelocity(wheel_right, -1)
         return 2 -- skip and move to next point
     end
 
-    motor:move(0)
+    sim.setJointTargetVelocity(wheel_left, 0)
+    sim.setJointTargetVelocity(wheel_right, 0)
     
     return 0
 end
@@ -248,9 +253,8 @@ end
 function goTo(destination)
     -- a sensor to check if we are about to collide with something
     if(sim.checkProximitySensor(JIC_sensor, sim.handle_all) == 1) then
-        return 2 -- reverse
+        return 2
     end
-
 
     local rel_movement = motor:getRelMotion(grid2NativeUnits(destination))
     -- local rel_movement = motor:getRelMotion({1, -5})
