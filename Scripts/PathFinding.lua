@@ -470,7 +470,7 @@ function segment(empty_points, epsilon, minPts)
                      centroid[C][2] = (centroid[C][2]*centroid[C][3] + corner_list[this_neighbor][2]) / (centroid[C][3] + 1)
                      centroid[C][3] = centroid[C][3] + 1
                      
-                     new_neighbors = empty_space_neighbors(this_neighbor)
+                     new_neighbors = white_space_neighbors_distance(this_neighbor)
  
                      if(#new_neighbors >= minPts) then -- this IS a core point which means we add its neighbors to our list
                          -- Add to our list
