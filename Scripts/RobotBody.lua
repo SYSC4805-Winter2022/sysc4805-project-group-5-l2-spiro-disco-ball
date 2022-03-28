@@ -91,8 +91,10 @@ function sysCall_init()
     MAP = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION) -- Our map is 12x12M each M^2 is divided into PRECISION # of slices
     
     -- Create the initial 1 cell path
-    path = pathFinder:Boustrophedon({{30, 5}, {90, 5}, {30, 60}, {90, 60}})
-    path = {{30, 5}, {90, 5}, {30, 60}, {90, 60}}
+    cell_decomp = pathFinder:CellDecomposition()
+    
+    path = pathFinder:Boustrophedon(cell_decomp[1][1])
+
     print("Starting simulation")
     -- Initialization done - Commence plowing sequence
 end
@@ -124,14 +126,60 @@ function sysCall_actuation()
     x = goTo(path[1])
     
     if x == 1 then
+        
         table.remove(path, 1)
-        print(path[1])
+
+        if(#path == 0) then
+            -- identify if we've finished this cell
+            -- if we have finished this cell then identify the new cell
+            path = identify_appropriate_pathing(cell_decomp)
+
+        end
+
     elseif x == -1 then
-        -- here we will re-evalute our cellular decomposition as it was deemed incorrect
+        cell_decomp = pathFinder:CellDecomposition()
+        path = identify_appropriate_pathing(cell_decomp)
+        
+        -- identify next pathing element from our list of all cells
     else
 
     end
 
+end
+
+function identify_appropriate_path(cell_list)
+    -- find the nearest cell that is available for us to plow
+
+    closest_index = 1
+
+    current_robot_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
+    current_robot_location = {math.floor(((location[1] + 6)*PRECISION) + 0.5),  math.floor((location[2] * PRECISION) + 0.5)}
+
+    current_best_distance = math.sqrt((cell_list[closest_index][1] - current_robot_location[1])**2 + (cell_list[closest_index][2] - current_robot_location[2])**2)
+
+    for i = 1, #cell_list do
+        -- find the nearest point
+
+        element_being_checked = cell_list[i][2]
+        element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])**2 + (element_being_checked[2] - current_robot_location[2])**2)
+
+        if element_distance < current_best_distance then
+            current_best_distance = element_distance
+            closest_index = i
+        end
+        
+    end
+    
+    pathing_element = {{cell_list[closest_index][2]}}
+    boustrophedon_pathing_element = pathFinder:Boustrophedon(cell_list[closest_index][1])
+
+    -- concatenate the tables
+    for bi=1, #boustrophedon_pathing_element[1][1] do 
+        pathing_element[#pathing_element + 1] = boustrophedon_pathing_element[bi] 
+    end
+        
+    -- remove this cell element from our cell_list
+    return pathing_element
 end
 
 function control_eyes()
@@ -144,12 +192,14 @@ function control_eyes()
     sim.setJointTargetPosition(eye_left, -1 * EYE_ANGLE * (math.pi/180))
     sim.setJointTargetPosition(eye_right, EYE_ANGLE * (math.pi/180))
 end
+
 --- converts grid coordinates to native coppelia sim coordinates
 ---@param gridcoord  {[1]:number, [2]:number}
 ---@return {[1]:number, [2]:number}
 function grid2NativeUnits(gridcoord)
     return {gridcoord[1]/PRECISION - 6, gridcoord[2]/PRECISION - 6}
 end
+
 --- makes the robot move to a certain location on our grid
 ---@param destination {[1]:number, [2]:number} # set of grid coordinates describing current location in [x,y]
 function goTo(destination)
@@ -225,7 +275,7 @@ function sysCall_sensing()
 
     --Call cleaning
     if sim.getSimulationTime() % 10 == 0 then
-        cleanMap()
+        --cleanMap()
     end
 
 
@@ -325,7 +375,7 @@ end
 file_num = 0
 function saveMap()
     MapString = ""
-    pathFinder:CellDecomposition()
+
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
         for j = 1, MAP_DIMENSIONS[2]*PRECISION do
             MapString = MapString.. " " .. MAP[j][i]
@@ -352,7 +402,7 @@ function cleanMap()
     --preform dialation for the map
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if _applyKernel(kernel, {i,j}, MAP, 1) > 0 then
+            if applyDilation_Erosion_kernel(kernel, {i,j}, MAP, 1) > 0 then
                 dilated[j][i] = 1
             else
                 dilated[j][i] = MAP[j][i]
@@ -363,8 +413,7 @@ function cleanMap()
     --preform errosion
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if _applyKernel(kernel, {i,j}, dilated, 1) == 9 then
-                
+            if applyDilation_Erosion_kernel(kernel, {i,j}, dilated, 1) == 9 then
                 erroted[j][i] = "."
             else
                 erroted[j][i]= dilated[j][i]
@@ -372,9 +421,10 @@ function cleanMap()
         end
     end
     MAP = erroted
+
 end
 
-function _applyKernel(kernel, coordinate, matrix, element)
+function applyDilation_Erosion_kernel(kernel, coordinate, matrix, element)
     kernel_len = math.floor(#kernel[1]/2)
     sum = 0
     for i = -1*kernel_len, kernel_len, 1 do

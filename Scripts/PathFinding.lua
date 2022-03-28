@@ -109,7 +109,8 @@ function PathFinding:CellDecomposition()
     create_cells(cluster_locations)
 
     cell_clusters = segmentation()
-
+    
+    return cell_clusters
 end
 
 
@@ -277,6 +278,7 @@ function corner_detector(corner_list, epsilon, minPts, euclidian)
     return cluster_list, centroid
 end
 
+
 -- Runs DBSCAN algorithm to perform segmentation on map
 function segmentation()
 
@@ -304,7 +306,7 @@ function segmentation()
                 else 
                     C = C + 1
 
-                    segmentation_list[C] = {{i, j}}
+                    segmentation_list[C] = {{{i, j}, {i,j}, {i,j}, {i,j}}, {{i, j}, {i, j}}}
                     
                     while(neighbors[1] ~= nil) do
 
@@ -314,9 +316,18 @@ function segmentation()
                         if segmentation_grid[this_neighbor[1]][this_neighbor[2]] == -1 then -- If this point is undefined
                             
                             segmentation_grid[this_neighbor[1]][this_neighbor[2]] = C -- define it as its part of our cluster
+
+                            -- Compare current with new corner suggestion
                             
-                            table.insert(segmentation_list[C], {this_neighbor[1], this_neighbor[2]})
-                            
+                            segmentation_list[C][1][1] = square_corners("TL", segmentation_list[C][1][1], {this_neighbor[1], this_neighbor[2]})
+                            segmentation_list[C][1][2] = square_corners("BL", segmentation_list[C][1][2], {this_neighbor[1], this_neighbor[2]})
+                            segmentation_list[C][1][3] = square_corners("TR", segmentation_list[C][1][3], {this_neighbor[1], this_neighbor[2]})
+                            segmentation_list[C][1][4] = square_corners("BR", segmentation_list[C][1][4], {this_neighbor[1], this_neighbor[2]})
+                            -- update the midpoints of each edge that we need to travel too
+                            segmentation_list[C][2][1] = {math.floor(((segmentation_list[C][1][1][2] + segmentation_list[C][1][2][2])/2) + 0.5), segmentation_list[C][1][2][1]}
+                            segmentation_list[C][2][2] = {math.floor(((segmentation_list[C][1][3][2] + segmentation_list[C][1][4][2])/2) + 0.5), segmentation_list[C][1][4][1]}
+
+
                             new_neighbors = adjacent_neighbors({this_neighbor[1], this_neighbor[2]})
                             if(#new_neighbors >= 8) then -- this IS a core point which means we add its neighbors to our list
                                 -- Add to our list
@@ -378,6 +389,38 @@ function euclidian_neighbors_distance(corner_list, ignore_index, point, epsilon)
     return dist_list
 end
 
+
+---
+--- Min max of cells
+---
+function square_corners(direction, current, suggested)
+
+    if(direction == "BR") then
+        if(suggested[1] >= current[1] and suggested[2] >= current[2]) then
+            return suggested
+        else 
+            return current
+        end
+    elseif(direction == "BL") then
+        if(suggested[1] <= current[1] and suggested[2] >= current[2]) then
+            return suggested
+        else 
+            return current
+        end
+    elseif(direction == "TR") then
+        if(suggested[1] >= current[1] and suggested[2] <= current[2]) then
+            return suggested
+        else 
+            return current
+        end
+    else 
+        if(suggested[1] <= current[1] and suggested[2] <= current[2]) then
+            return suggested
+        else 
+            return current
+        end
+    end
+end
 
 --
 -- CORNER DETECTING ALGORITHMS
