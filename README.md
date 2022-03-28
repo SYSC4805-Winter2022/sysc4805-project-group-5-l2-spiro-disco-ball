@@ -7,6 +7,14 @@
 4. Run Scene
 5. If the simulation results in an error, please save the scene as the scene path has not been created yet.
 
+### **To run tests**
+1. To test Boustrophedon algorithm run *lua Scripts/TestBoustrophedon.lua*
+2. To test Cell Decomposition algorithm run *lua Scripts/TestCellDecomposition.lua*
+3. To test Robot Body
+    > open the model.ttm located in ./Models folder
+    > copy Scripts/TestRobotBody.lua file in to the RobotBody script
+    > start the simulation
+
 ### **Requirements**
 1. Coppeliasim Education Edition (Version 4.2 or newer)
 2. Git
