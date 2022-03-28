@@ -70,6 +70,11 @@ function PathFinding:CellDecomposition()
     -- start by redefining areas that are covered 
     for i = 1, MAP_DIMENSIONS[1]*PRECISION do
         for j = 1, MAP_DIMENSIONS[2]*PRECISION do
+            -- reset previous cell decompostion spaces
+            if(MAP[j][i] == "O") then
+                MAP[j][i] = "."
+            end
+
             if(MAP[j][i] == "@") then 
                 -- Change all pixels in this windows if they are empty spaces - DON'T CHANGE ANYTHING ELSE
                 for k_i = -1*math.floor((window[1]/2)), window[1], 1 do
@@ -158,13 +163,18 @@ function _extend_up_down(point)
         if((point[2] - extension) >= 1 and move_up) then
             if(MAP[point[1]][point[2] - extension] == '.' or MAP[point[1]][point[2] - extension] == '*' or MAP[point[1]][point[2] - extension] == '@') then 
                 up_value = (point[2] - extension)
-                MAP[point[1]][point[2] - extension] = "O"
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
-                    MAP[point[1] + 1][point[2] - extension] = "O"
+
+                if(MAP[point[1]][point[2] - extension] == ".") then
+                    MAP[point[1]][point[2] - extension] = "O"
                 end
-                if(point[1] - 1 > 0) then
-                    MAP[point[1] - 1][point[2] - extension] = "O"
+
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION and MAP[point[1] + 1][point[2] - extension] == ".") then
+                    MAP[point[1] + 1][point[2] + extension] = "O"
                 end
+                if(point[1] - 1 > 0 and MAP[point[1] - 1][point[2] - extension] == ".") then
+                    MAP[point[1] - 1][point[2] + extension] = "O"
+                end
+
             elseif(MAP[point[1]][point[2] - extension] == 1) then 
                 move_up = false 
             end
@@ -177,13 +187,18 @@ function _extend_up_down(point)
             -- A free space was encountered so we set the down value we encountered
             if(MAP[point[1]][point[2] + extension] == '.' or MAP[point[1]][point[2] + extension] == '*' or MAP[point[1]][point[2] + extension] == '@') then 
                 down_value = (point[2] + extension)
-                MAP[point[1]][point[2] + extension] = "O"
-                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION) then
+
+                if(MAP[point[1]][point[2] + extension] == ".") then 
+                    MAP[point[1]][point[2] + extension] = "O"
+                end
+
+                if(point[1] + 1 < MAP_DIMENSIONS[2]*PRECISION and MAP[point[1] + 1][point[2] + extension] == ".") then
                     MAP[point[1] + 1][point[2] + extension] = "O"
                 end
-                if(point[1] - 1 > 0) then
+                if(point[1] - 1 > 0 and MAP[point[1] - 1][point[2] + extension] == ".") then
                     MAP[point[1] - 1][point[2] + extension] = "O"
                 end
+
             elseif(MAP[point[1]][point[2] + extension] == 1) then
                 move_down = false 
             end
@@ -303,7 +318,6 @@ function segmentation()
                             table.insert(segmentation_list[C], {this_neighbor[1], this_neighbor[2]})
                             
                             new_neighbors = adjacent_neighbors({this_neighbor[1], this_neighbor[2]})
-                            
                             if(#new_neighbors >= 8) then -- this IS a core point which means we add its neighbors to our list
                                 -- Add to our list
                                 for add_neighbor = 1, #new_neighbors do table.insert(neighbors, new_neighbors[add_neighbor]) end
@@ -313,24 +327,6 @@ function segmentation()
                 end
             end
         end
-    end
-
-    MapStringTest = ""
-    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
-        for j = 1, MAP_DIMENSIONS[2]*PRECISION do
-            MapStringTest = MapStringTest.. " " .. segmentation_grid[j][i]
-        end
-        MapStringTest = MapStringTest .. "\n"
-    end
-
-    pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/Paths/test.txt"
-    local file,err = io.open(pathStr,'w')
-    if file then
-        file:write(MapStringTest)
-        file:close()
-        print("File has been saved")
-    else
-        print("error saving file:", err)
     end
 
     return segmentation_list
@@ -348,7 +344,7 @@ function adjacent_neighbors(point)
         for j = -1, 1 do
             if((point[1] + i) >= 1 and (point[1] + i) <= MAP_DIMENSIONS[2]*PRECISION and (point[2] + j) >= 1 and (point[2] + j) <= MAP_DIMENSIONS[2]*PRECISION) then
                 poi = MAP[point[1] + i][point[2] + j]
-                if(poi == "." or poi == "@" or poi == "*") then
+                if(poi == ".") then
                     if(i == 0 and j == 0) then
                     else 
                         table.insert(adjacent_neighbors_list, {point[1] + i, point[2] + j}) 
