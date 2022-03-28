@@ -283,12 +283,12 @@ function segmentation()
                 -- this point was already processed or is weird - skip
             else 
                 neighbors = adjacent_neighbors({i, j})
-                if #neighbors < 4 then
+                if #neighbors < 8 then
                     -- label as noise
                     segmentation_grid[i][j] = 0
                 else 
                     C = C + 1
-                    print(C)
+
                     segmentation_list[C] = {{i, j}}
                     
                     while(neighbors[1] ~= nil) do
@@ -304,7 +304,7 @@ function segmentation()
                             
                             new_neighbors = adjacent_neighbors({this_neighbor[1], this_neighbor[2]})
                             
-                            if(#new_neighbors >= 4) then -- this IS a core point which means we add its neighbors to our list
+                            if(#new_neighbors >= 8) then -- this IS a core point which means we add its neighbors to our list
                                 -- Add to our list
                                 for add_neighbor = 1, #new_neighbors do table.insert(neighbors, new_neighbors[add_neighbor]) end
                             end 
@@ -314,6 +314,26 @@ function segmentation()
             end
         end
     end
+
+    MapStringTest = ""
+    for i = 1, MAP_DIMENSIONS[1]*PRECISION do
+        for j = 1, MAP_DIMENSIONS[2]*PRECISION do
+            MapStringTest = MapStringTest.. " " .. segmentation_grid[j][i]
+        end
+        MapStringTest = MapStringTest .. "\n"
+    end
+
+    pathStr = sim.getStringParam(sim.stringparam_scene_path) .. "/Paths/test.txt"
+    local file,err = io.open(pathStr,'w')
+    if file then
+        file:write(MapStringTest)
+        file:close()
+        print("File has been saved")
+    else
+        print("error saving file:", err)
+    end
+
+    return segmentation_list
 end
 
 
@@ -329,14 +349,14 @@ function adjacent_neighbors(point)
             if((point[1] + i) >= 1 and (point[1] + i) <= MAP_DIMENSIONS[2]*PRECISION and (point[2] + j) >= 1 and (point[2] + j) <= MAP_DIMENSIONS[2]*PRECISION) then
                 poi = MAP[point[1] + i][point[2] + j]
                 if(poi == "." or poi == "@" or poi == "*") then
-                    if(i ~= 0 and j ~= 0) then
-                        table.insert(adjacent_neighbors_list, {point[1] + i, point[2] + j})
+                    if(i == 0 and j == 0) then
+                    else 
+                        table.insert(adjacent_neighbors_list, {point[1] + i, point[2] + j}) 
                     end
                 end
             end
         end
     end
-
     return adjacent_neighbors_list
 end
 
