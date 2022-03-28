@@ -155,13 +155,13 @@ function identify_appropriate_path(cell_list)
     current_robot_location = sim.getObjectPosition(main_body, lilypad) -- Finds the position of the robot in relation to the lilypad
     current_robot_location = {math.floor(((location[1] + 6)*PRECISION) + 0.5),  math.floor((location[2] * PRECISION) + 0.5)}
 
-    current_best_distance = math.sqrt((cell_list[closest_index][1] - current_robot_location[1])**2 + (cell_list[closest_index][2] - current_robot_location[2])**2)
+    current_best_distance = math.sqrt((cell_list[closest_index][1] - current_robot_location[1])^2 + (cell_list[closest_index][2] - current_robot_location[2])^2)
 
     for i = 1, #cell_list do
         -- find the nearest point
 
         element_being_checked = cell_list[i][2]
-        element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])**2 + (element_being_checked[2] - current_robot_location[2])**2)
+        element_distance = math.sqrt((element_being_checked[1] - current_robot_location[1])^2 + (element_being_checked[2] - current_robot_location[2])^2)
 
         if element_distance < current_best_distance then
             current_best_distance = element_distance
