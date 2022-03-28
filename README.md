@@ -11,9 +11,9 @@
 1. To test Boustrophedon algorithm run *lua Scripts/TestBoustrophedon.lua*
 2. To test Cell Decomposition algorithm run *lua Scripts/TestCellDecomposition.lua*
 3. To test Robot Body
-    > open the model.ttm located in ./Models folder
-    > copy Scripts/TestRobotBody.lua file in to the RobotBody script
-    > start the simulation
+    > open the model.ttm located in ./Models folder 
+    > copy Scripts/TestRobotBody.lua file in to the RobotBody script 
+    > start the simulation 
 
 ### **Requirements**
 1. Coppeliasim Education Edition (Version 4.2 or newer)
