@@ -345,67 +345,17 @@ function saveMap()
     end
 end
 
-function satisfiesElement(i,j, symbol, map)
-    --[[
-        We want a plus 3x3 shape element
-        was going to do a for loop but it is easier to experiment with shape
-        like this
-    ]]
-    if i ~= 1 then
-        topVal = (map[i-1][j] == symbol)
-    else
-        topVal = false
-    end
-    midVal = (map[i][j] == symbol)
-    if i ~= MAP_DIMENSIONS[1]*PRECISION then
-        botVal = (map[i+1][j] == symbol)
-    else
-        botVal = false
-    end
-    if j ~= MAP_DIMENSIONS[2]*PRECISION then 
-        rightVal = (map[i][j+1] == symbol)
-    else
-        rightVal=false
-    end
-    if j ~= 1 then
-        leftVal = (map[i][j-1] == symbol)
-    else 
-        leftVal = false
-    end
-    if (i ~= 1) and (j ~= MAP_DIMENSIONS[2]*PRECISION) then
-        topRightVal = (map[i-1][j+1] == symbol)
-    else
-        topRightVal = false
-    end
-    if (i ~= MAP_DIMENSIONS[1]*PRECISION) and (j ~= MAP_DIMENSIONS[2]*PRECISION) then
-        bottomRightVal = (map[i+1][j+1] == symbol)
-    else
-        bottomRightVal = false
-    end
-    if (i ~= 1) and (j ~= 1) then
-        topLeftVal = (map[i-1][j-1] == symbol)
-    else
-        topLeftVal = false
-    end
-    if (i ~= MAP_DIMENSIONS[1]*PRECISION) and (j ~= 1) then
-        bottomLeftVal = (map[i+1][j-1] == symbol)
-    else
-        bottomLeftVal = false
-    end
-    return (topVal or midVal or botVal or rightVal or leftVal or topRightVal or topLeftVal or bottomLeftVal or bottomRightVal)
-end
-
-
 function cleanMap()
     dilated = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
     erroted = create_map(MAP_DIMENSIONS[1]*PRECISION, MAP_DIMENSIONS[2]*PRECISION)
+    kernel = {{1,1,1},{1,1,1},{1,1,1}}
     --preform dialation for the map
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if satisfiesElement(i,j,1, MAP) then
-                dilated[i][j] = 1
+            if _applyKernel(kernel, {i,j}, MAP, 1) > 0 then
+                dilated[j][i] = 1
             else
-                dilated[i][j] = MAP[i][j]
+                dilated[j][i] = MAP[j][i]
             end
         end
     end
@@ -413,7 +363,7 @@ function cleanMap()
     --preform errosion
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if satisfiesElement(i,j, 1, dilated) then
+            if _applyKernel(kernel, {i,j}, dilated, 1) == 9 then
                 
                 erroted[j][i] = "."
             else
@@ -422,4 +372,20 @@ function cleanMap()
         end
     end
     MAP = erroted
+end
+
+function _applyKernel(kernel, coordinate, matrix, element)
+    kernel_len = math.floor(#kernel[1]/2)
+    sum = 0
+    for i = -1*kernel_len, kernel_len, 1 do
+        for j = -1*kernel_len, kernel_len, 1 do
+            if((i + coordinate[1]) >= 1 and (j + coordinate[2]) >= 1 and (i + coordinate[1]) <= 120 and (j + coordinate[2]) <= 120) then
+                if(matrix[i + coordinate[1]][j + coordinate[2]] == element) then
+                    -- Then we can actually perform the operation for this element
+                    sum = sum + (matrix[i + coordinate[1]][j + coordinate[2]] * kernel[i + (kernel_len + 1)][j + (kernel_len + 1)])
+                end
+            end
+        end
+    end
+    return sum
 end
