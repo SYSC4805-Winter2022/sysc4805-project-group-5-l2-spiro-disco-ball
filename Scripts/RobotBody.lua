@@ -140,13 +140,15 @@ function sysCall_actuation()
         if(#path == 0) then
             -- identify if we've finished this cell
             -- if we have finished this cell then identify the new cell
-            path = identify_appropriate_pathing(cell_decomp)
+            if(#cell_decomp == 0) then
+                cleanMap()
+                path = identify_appropriate_pathing(cell_decomp)[1]
+            end
         end
     elseif curr_state == -1 then
-        
         cleanMap()
         cell_decomp = pathFinder:CellDecomposition()
-        path = identify_appropriate_pathing(cell_decomp)
+        path = identify_appropriate_pathing(cell_decomp)[1]
         
         -- identify next pathing element from our list of all cells
     elseif curr_state == 2 then
@@ -210,7 +212,8 @@ function identify_appropriate_pathing(cell_list)
         -- when area isn't large enough we compose it off just our path
         for bi=1, #cell_list[closest_index][1] do pathing_element[#pathing_element + 1] = cell_list[closest_index][1][bi] end
     end
-    print(pathing_element)
+    
+    table.remove(cell_decomp, closest_index)
     -- remove this cell element from our cell_list
     return pathing_element
 end

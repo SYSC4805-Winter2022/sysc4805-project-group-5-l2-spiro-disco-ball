@@ -96,7 +96,7 @@ function PathFinding:CellDecomposition()
 
     -- HARRIS CORNER DETECTION
     print("Applying Harris Corner Detection Algorithm")
-    points_of_interest = harris(Map_gradient, 15000, 0.06) 
+    points_of_interest = harris(Map_gradient, 12000, 0.05) 
     cluster_list, cluster_locations = corner_detector(points_of_interest, 3, 3, true)
 
     for cluster = 1, #cluster_locations do
@@ -161,12 +161,11 @@ function _extend_up_down(point)
         -- extend up -> determine if we have space to extend upwards
         if((point[2] - extension) >= 1 and move_up) then
 
-            if(MAP[point[1]][point[2] - extension] == 1) then
+            up_value = (point[2] - extension)
+            if(MAP[point[1]][up_value] == 1) then
                 move_up = false 
             else 
-                up_value = (point[2] - extension)
-
-                MAP[point[1]][point[2] - extension] = "O"
+                MAP[point[1]][up_value] = "O"
             end
         else 
             move_up = false
@@ -175,13 +174,14 @@ function _extend_up_down(point)
         -- extend down -> determine if we have space to extend downwards
         if(((point[2] + extension) <= MAP_DIMENSIONS[2]*PRECISION) and move_down) then
             -- A free space was encountered so we set the down value we encountered
-            if(MAP[point[1]][point[2] + extension] == 1) then
+            down_value = (point[2] + extension)
+
+            if(MAP[point[1]][down_value] == 1) then
                 move_down = false 
             else 
-                down_value = (point[2] + extension)
 
-                MAP[point[1]][point[2] + extension] = "O"
-                
+                MAP[point[1]][down_value] = "O"
+
             end
         else
             move_down = false
