@@ -28,16 +28,32 @@ for i = 1, N do
 end  
 
 
-local cell_decomp = pathFinder:CellDecomposition()
-local first_cell_decomp_cell= cell_decomp[1][2][1][1]
-local expected_cell_decomp = 61
+local cell_decomp = pathFinder:CellDecomposition() 
 
-print(print_table(cell_decomp))
-
-if first_cell_decomp_cell - expected_cell_decomp < 0.1 then
-    print("\n\nPassed: Cell decomponstion divided correctly")
-else
-    print("\n\nFailed: First cell decomposed failed to match the expected cell")
+expected = {
+{{3, 2}},
+{{3, 120}},
+{{119, 1}},
+{{119, 120}},
+{{61,3}},
+{{61, 119}},
+{{"", "" }},
+}
+print('\n')
+local counter = 1
+for k,v in pairs(cell_decomp) do
+    for kk,vv in pairs(v) do
+        for kkk,vvv in pairs(vv) do
+            for k4,v4 in pairs(vvv) do
+                if expected[counter][1][k4] - v4 > 0.1 then
+                    msg = "AT[".. tostring(k).."][".. tostring(k4).."]=".. tostring(v4)
+                    print(msg)
+                    error("Failed:Cell decomponstion output doesn't match")
+                end 
+            end
+            counter = counter + 1
+        end
+    end
 end
-
- 
+print(print_table(cell_decomp))
+print("\nPassed: Cell decomponstion divided correctly")
