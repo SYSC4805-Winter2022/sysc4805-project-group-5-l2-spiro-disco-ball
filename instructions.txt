@@ -1,0 +1,63 @@
+SYSC4805 Project: Group 5 - Spiro Disco Ball
+-------------------------------------------------------------------------------------------------------------
+Requirements:
+1. Coppeliasim Education Edition (Version 4.2 or newer)
+2. Git (Optional)
+-------------------------------------------------------------------------------------------------------------
+How to set up environment (From Zip)
+1. Download and extract most recent version
+2. Navigate to the folder in file explorer
+3. Place Coppeliasim scenes in current working directory such as:
+    +---- sysc4805-project-group-5-l2-spiro-disco-ball
+    |       +---- Model
+    |       +---- Report
+    |       +---- Scripts
+    |       Map1.ttt
+    |       Map2.ttt
+    |       Map3.ttt
+    |       Map4.ttt
+    |       {YOUR MAP HERE}
+4. Open the Coppeliasim scene by double-clicking on the scene placed
+    into the directory
+5. Within Coppeliasim, navigate to the toolbar at the top of the window.
+    Select File > Load Model
+6. Once selected, a file explorer window will show up. Navigate to the
+    folder which the scene is currently placed. 
+7. Once in the directory navigate to the Models folder and select "ModelV2"
+8. Save the scene once model is loaded in to the scene. This is for the scene
+    to have correct pathing
+-------------------------------------------------------------------------------------------------------------
+How to set up environment (With Git)
+1. Pull most recent version from GitHub
+2. Navigate to the folder in file explorer
+3. Place Coppeliasim scenes in current working directory such as:
+    +---- sysc4805-project-group-5-l2-spiro-disco-ball
+    |       +---- Model
+    |       +---- Report
+    |       +---- Scripts
+    |       Map1.ttt
+    |       Map2.ttt
+    |       Map3.ttt
+    |       Map4.ttt
+    |       {YOUR MAP HERE}
+4. Open the Coppeliasim scene by double-clicking on the scene placed
+    into the directory
+5. Within Coppeliasim, navigate to the toolbar at the top of the window.
+    Select File > Load Model
+6. Once selected, a file explorer window will show up. Navigate to the
+    folder which the scene is currently placed. 
+7. Once in the directory navigate to the Models folder and select "ModelV2"
+8. Save the scene once model is loaded in to the scene. This is for the scene
+    to have correct pathing
+--------------------------------------------------------------------------------------------------------------
+Tests to run tests
+To test Boustrophedon algorithm run 
+    - lua Scripts/TestBoustrophedon.lua
+2. To test Cell Decomposition algorithm run 
+    - lua Scripts/TestCellDecomposition.lua
+3. To test Robot Body
+    - open the model.ttm located in ./Models folder 
+    - copy Scripts/TestRobotBody.lua code in to the RobotBody script 
+    - start the simulation 
+
+
