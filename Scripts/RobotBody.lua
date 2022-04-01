@@ -97,6 +97,7 @@ function sysCall_init()
 
     print("Starting simulation")
     -- Initialization done - Commence plowing sequence
+    plowClosed = true
 end
 
 
@@ -121,6 +122,12 @@ curr_state = 0
     ACTUATION BODY FUNCTIONS
 ]]
 function sysCall_actuation()
+
+    if (sim.getSimulationTime() == 1) and (plowClosed) then
+        sim.setJointTargetPosition(plowMotor_left,  -4.18879)
+        sim.setJointTargetPosition(plowMotor_right, 4.18879)
+        plowClosed = false
+    end
     -- Swivel around the eyes to analyze the surrounding area
     control_eyes()
 
