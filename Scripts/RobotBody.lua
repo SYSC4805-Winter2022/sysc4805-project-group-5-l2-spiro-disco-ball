@@ -472,15 +472,17 @@ function cleanMap()
     --preform errosion
     for i=1, MAP_DIMENSIONS[1]*PRECISION, 1 do
         for j=1, MAP_DIMENSIONS[2]*PRECISION, 1 do
-            if applyDilation_Erosion_kernel(kernel, {i,j}, dilated, "erosion") == 8 then
-                eoi = MAP[i][j]
-                if(eoi == "@" or eoi == "*" or eoi == ".") then
-                    erroted[i][j] = eoi
-                else 
-                    erroted[i][j] = "."
+            if dilated[i][j] == 1 then
+                if applyDilation_Erosion_kernel(kernel, {i,j}, dilated, "erosion") >= 2 then
+                    eoi = MAP[i][j]
+                    if(eoi == "@" or eoi == "*" or eoi == ".") then
+                        erroted[i][j] = eoi
+                    else 
+                        erroted[i][j] = "."
+                    end
+                else
+                    erroted[i][j]= dilated[i][j]
                 end
-            else
-                erroted[i][j]= dilated[i][j]
             end
         end
     end
