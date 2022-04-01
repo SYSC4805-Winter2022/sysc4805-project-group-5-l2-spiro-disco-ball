@@ -49,7 +49,7 @@ function PathFinding:Boustrophedon(cell_bounds)
     max_min_cycle = 1
 
     for i=1, #boustrophedon_path do
-        if(boustrophedon_path[i] ~= nil and i % 6 == 0) then
+        if(boustrophedon_path[i] ~= nil and i % 5 == 0) then
             --table.insert(final_boustrophedon_path, {boustrophedon_path[i][max_min_cycle], i})
             table.insert(final_boustrophedon_path, {boustrophedon_path[i][1], i})
             table.insert(final_boustrophedon_path, {boustrophedon_path[i][2], i})
