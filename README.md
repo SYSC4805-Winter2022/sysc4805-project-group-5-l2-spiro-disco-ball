@@ -22,41 +22,41 @@
 2. Git
 
 ### **Contributors**
-Student | Student Number
---- | ---
-David Casciano | 101069255
-Aedyn Ladd | 101068855
-Daniel Tura | 100995028
-Tadhg McDonald-Jensen | 101047069
+| Student Name          | Student Number |
+|-----------------------+----------------|
+| David Casciano        |      101069255 |
+| Aedyn Ladd            |      101068855 |
+| Daniel Tura           |      100995028 |
+| Tadhg McDonald-Jensen |      101047069 |
 
 ### **Tasks Completed**
-Task | Contributor | Advisors
----|---|---
-Create Github repository and associated projects | David Casciano | Aedyn Ladd
-Create gantt chart, reponsibility matrix, and state diagram | David Casciano | N/A
-Create infrastructure for version controlling | David Casciano | Daniel Tura and Aedyn Ladd
-Research Morphology | David Casciano  | Aedyn Ladd
-Implement Morphology | David Casciano | Aedyn Ladd
-Researched Sensing | David Casciano | N/A
-Created robot model | Aedyn Ladd | N/A
-Added sensors and motors to model | Aedyn Ladd | N/A
-Implemented Sensing | Aedyn Ladd | N/A
-Researched Motors | Tadhg McDonald-Jensen | N/A
-Project Presentation Slides | Aedyn Ladd | N/A
-Implementation of GoTo function | Aedyn Ladd | Tadhg McDonald-Jensen
-Implement MotorControl | Tadhg McDonald-Jensen
-Tomography Based Environmental Mapping | Aedyn Ladd | N/A
-Corner Detection and Map Awareness | Aedyn Ladd | N/A
-Cellular Decomposition | Aedyn Ladd and David Casciano | N/A
-Refine Sensor Requirement | David Casciano | Aedyn Ladd
-Research RemoteAPI Communication | Daniel Tura, Aedyn Ladd, and David Casciano | Tadhg McDonald-Jensen
-Contributions To Progress Report and Proposal Contributions | Daniel Tura | N/A
-Write Unit Test Robot Components | Daniel Tura | N/A
-Write Unit Test Algorithms | Daniel Tura | N/A
-Report Map Test Results | Daniel Tura | N/A
-Budget Calculations and planning | Daniel Tura | N/A
-Record evaluation map videos | David Casciano | N/A
-Record training map videos   | Daniel Tura | 
+| Task                                                        | Contributor                                 | Advisors                   |
+|-------------------------------------------------------------+---------------------------------------------+----------------------------|
+| Create Github repository and associated projects            | David Casciano                              | Aedyn Ladd                 |
+| Create gantt chart, reponsibility matrix, and state diagram | David Casciano                              | N/A                        |
+| Create infrastructure for version controlling               | David Casciano                              | Daniel Tura and Aedyn Ladd |
+| Research Morphology                                         | David Casciano                              | Aedyn Ladd                 |
+| Implement Morphology                                        | David Casciano                              | Aedyn Ladd                 |
+| Researched Sensing                                          | David Casciano                              | N/A                        |
+| Created robot model                                         | Aedyn Ladd                                  | N/A                        |
+| Added sensors and motors to model                           | Aedyn Ladd                                  | N/A                        |
+| Implemented Sensing                                         | Aedyn Ladd                                  | N/A                        |
+| Researched Motors                                           | Tadhg McDonald-Jensen                       | N/A                        |
+| Project Presentation Slides                                 | Aedyn Ladd                                  | N/A                        |
+| Implementation of GoTo function                             | Aedyn Ladd and Tadhg McDonald-Jensen        | N/A                        |
+| Implement MotorControl                                      | Tadhg McDonald-Jensen                       | N/A                        |
+| Tomography Based Environmental Mapping                      | Aedyn Ladd                                  | N/A                        |
+| Corner Detection and Map Awareness                          | Aedyn Ladd                                  | N/A                        |
+| Cellular Decomposition                                      | Aedyn Ladd and David Casciano               | N/A                        |
+| Refine Sensor Requirement                                   | David Casciano                              | Aedyn Ladd                 |
+| Research RemoteAPI Communication                            | Daniel Tura, Aedyn Ladd, and David Casciano | Tadhg McDonald-Jensen      |
+| Contributions To Progress Report and Proposal Contributions | Daniel Tura                                 | N/A                        |
+| Write Unit Test Robot Components                            | Daniel Tura                                 | N/A                        |
+| Write Unit Test Algorithms                                  | Daniel Tura                                 | N/A                        |
+| Report Map Test Results                                     | Daniel Tura                                 | N/A                        |
+| Budget Calculations and planning                            | Daniel Tura                                 | N/A                        |
+| Record evaluation map videos                                | David Casciano                              | N/A                        |
+| Record training map videos                                  | Daniel Tura                                 | N/A                        |
 ### **Reporting**
 To access reports such as:
 - Project Proposal
