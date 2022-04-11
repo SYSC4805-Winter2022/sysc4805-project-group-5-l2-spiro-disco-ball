@@ -48,7 +48,13 @@ Implementation of GoTo function | Aedyn Ladd | Tadgh McDonald-Jensen
 Tomography Based Environmental Mapping | Aedyn Ladd | N/A
 Corner Detection and Map Awareness | Aedyn Ladd | N/A
 Cellular Decomposition | Aedyn Ladd and David Casciano | N/A
-
+Refine Sensor Requirement | Daniel Tura | Tadgh McDonald-Jensen
+Research RemoteAPI Communication | Daniel Tura | Tadgh McDonald-Jensen, David Casciano and Aedyn Ladd
+Contributions To Progress Report and Proposal Contributions | Daniel Tura | N/A
+Write Unit Test Robot Components | Daniel Tura | N/A
+Write Unit Test Algorithms | Daniel Tura | N/A
+Report Map Test Results | Daniel Tura | N/A
+Budget Calculations and planning | Daniel Tura | N/A
 ### **Reporting**
 To access reports such as:
 - Project Proposal
