@@ -38,6 +38,7 @@ Create infrastructure for version controlling | David Casciano | Daniel Tura and
 Research Morphology | David Casciano  | Aedyn Ladd
 Implement Morphology | David Casciano | Aedyn Ladd
 Researched Sensing | David Casciano | N/A
+Record evaluation map videos | David Casciano | N/A
 Created robot model | Aedyn Ladd | N/A
 Added sensors and motors to model | Aedyn Ladd | N/A
 Progress Report and Proposal Contributions | Aedyn Ladd | N/A
@@ -48,18 +49,14 @@ Implementation of GoTo function | Aedyn Ladd | Tadgh McDonald-Jensen
 Tomography Based Environmental Mapping | Aedyn Ladd | N/A
 Corner Detection and Map Awareness | Aedyn Ladd | N/A
 Cellular Decomposition | Aedyn Ladd and David Casciano | N/A
-<<<<<<< Updated upstream
-Research RemoteAPI Communication | Daniel Tura | Tadgh McDonald-Jensen, David Casciano and Aedyn Ladd
-=======
 Refine Sensor Requirement | David Casciano | Aedyn Ladd
 Research RemoteAPI Communication | Daniel Tura, Aedyn Ladd, and David Casciano| Tadgh McDonald-Jensen
->>>>>>> Stashed changes
 Contributions To Progress Report and Proposal Contributions | Daniel Tura | N/A
 Write Unit Test Robot Components | Daniel Tura | N/A
 Write Unit Test Algorithms | Daniel Tura | N/A
 Report Map Test Results | Daniel Tura | N/A
 Budget Calculations and planning | Daniel Tura | N/A
-Record and upload map Videos | Daniel Tura | Tadgh McDonald-Jensen
+Record and upload training map videos | Daniel Tura | Tadgh McDonald-Jensen
 ### **Reporting**
 To access reports such as:
 - Project Proposal
